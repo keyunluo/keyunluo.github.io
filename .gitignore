@@ -7,3 +7,4 @@ public/
 .deploy*/
 .ipynb_checkpoints/
 *.pyc
+.vs/

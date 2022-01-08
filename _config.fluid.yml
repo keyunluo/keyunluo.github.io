@@ -35,7 +35,7 @@ force_https: true
 # 部署
 deploy:
   type: git
-  repository: https://github.com/keyunluo/keyunluo.github.io
+  repository: ssh://git@github.com/keyunluo/keyunluo.github.io.git
   branch: main
 
 # 代码块的增强配置
@@ -220,7 +220,7 @@ web_analytics:  # 网页访问统计
   # 百度统计的 Key，值需要获取下方链接中 `hm.js?` 后边的字符串
   # Baidu analytics, get the string behind `hm.js?`
   # See: https://tongji.baidu.com/sc-web/10000033910/home/site/getjs?siteId=13751376
-  baidu:
+  baidu: e2bacb4062644434b87a03658392592e
 
   # Google 统计的 Tracking ID
   # Google analytics, set Tracking ID
@@ -252,11 +252,11 @@ web_analytics:  # 网页访问统计
   # LeanCloud 计数统计，可用于 PV UV 展示，如果 `web_analytics: enable` 没有开启，PV UV 展示只会查询不会增加
   # LeanCloud count statistics, which can be used for PV UV display. If `web_analytics: enable` is false, PV UV display will only query and not increase
   leancloud:
-    app_id:
-    app_key:
+    app_id: NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz
+    app_key: ODqlMdJWwrMxHFHzfz3pMvBS
     # REST API 服务器地址，国际版不填
     # Only the Chinese mainland users need to set
-    server_url:
+    server_url: https://nqndu9io.lc-cn-n1-shared.com
 
 # 对页面中的图片和评论插件进行懒加载处理，可见范围外的元素不会提前加载
 # Lazy loading of images and comment plugin on the page
@@ -314,7 +314,6 @@ navbar:
     - { key: "category", link: "/categories/", icon: "iconfont icon-category-fill" }
     - { key: "tag", link: "/tags/", icon: "iconfont icon-tags-fill" }
     - { key: "about", link: "/about/", icon: "iconfont icon-user-fill" }
-    - { key: "tool", link: "/tool/", icon: "iconfont icon-briefcase" }
 
 # 搜索功能，基于 hexo-generator-search 插件，若已安装其他搜索插件请关闭此功能，以避免生成多余的索引文件
 # Search feature, based on hexo-generator-search. If you have installed other search plugins, please disable this feature to avoid generating redundant index files
@@ -390,7 +389,7 @@ footer:
     # 统计数据来源，使用 leancloud 需要设置 `web_analytics: leancloud` 中的参数；使用 busuanzi 不需要额外设置，但是有时不稳定，另外本地运行时 busuanzi 显示统计数据很大属于正常现象，部署后会正常
     # Data source. If use leancloud, you need to set the parameter in `web_analytics: leancloud`
     # Options: busuanzi | leancloud
-    source: "busuanzi"
+    source: "leancloud"
 
     # 页面显示的文本，{}是数字的占位符（必须包含)，下同
     # Displayed text, {} is a placeholder for numbers (must be included), the same below
@@ -437,7 +436,7 @@ index:
 
     # 为空则按 hexo config.subtitle 显示
     # If empty, text based on `subtitle` in hexo config
-    text: "Not enchanted does not survive"
+    text: "他跑啊跑啊，只为追上那个曾经被寄予厚望的自己"
 
     # 通过 API 接口作为首页副标题的内容，必须返回的是 JSON 格式，如果请求失败则按 text 字段显示，该功能必须先开启 typing 打字机功能
     # Subtitle of the homepage through the API, must be returned a JSON. If the request fails, it will be displayed in `text` value. This feature must first enable the typing animation
@@ -539,7 +538,7 @@ post:
       # 统计数据来源
       # Data Source
       # Options: busuanzi | leancloud
-      source: "busuanzi"
+      source: "leancloud"
       format: "{} 次"
 
   # 在文章开头显示文章更新时间，该时间默认是 md 文件更新时间，可通过 front-matter 中 `updated` 手动指定（和 date 一样格式）
