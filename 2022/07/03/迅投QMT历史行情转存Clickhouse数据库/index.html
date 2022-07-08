@@ -1,0 +1,601 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.jpg">
+  <link rel="icon" href="/img/favicon.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Keyun Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="上文介绍如何获取批量股票代码并缓存对应的tick、分钟、日级别的历史数据，本节则介绍如何将读取本地的缓存数据并写入到clickhouse数据库中。历史行情数据从格式上看分为tick数据和K线数据两大类，针对这两类的数据我们分别处理。  Tick数据预处理首先读取本地缓存数据，这里以南航转债(110075.SH)为例，需要注意的是tick数据包含了集合竞价时段，成交量&#x2F;额是按日累计的，因此需要做一">
+<meta property="og:type" content="article">
+<meta property="og:title" content="迅投QMT历史行情转存Clickhouse数据库">
+<meta property="og:url" content="https://keyunluo.github.io/2022/07/03/%E8%BF%85%E6%8A%95QMT%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E8%BD%AC%E5%AD%98Clickhouse%E6%95%B0%E6%8D%AE%E5%BA%93/index.html">
+<meta property="og:site_name" content="流光">
+<meta property="og:description" content="上文介绍如何获取批量股票代码并缓存对应的tick、分钟、日级别的历史数据，本节则介绍如何将读取本地的缓存数据并写入到clickhouse数据库中。历史行情数据从格式上看分为tick数据和K线数据两大类，针对这两类的数据我们分别处理。  Tick数据预处理首先读取本地缓存数据，这里以南航转债(110075.SH)为例，需要注意的是tick数据包含了集合竞价时段，成交量&#x2F;额是按日累计的，因此需要做一">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://keyunluo.github.io/img/tick_data_store.png">
+<meta property="og:image" content="https://keyunluo.github.io/img/kline_data_store.png">
+<meta property="og:image" content="https://keyunluo.github.io/img/clickhouse_query.png">
+<meta property="og:image" content="https://keyunluo.github.io/img/qrcode.png">
+<meta property="article:published_time" content="2022-07-03T04:00:00.000Z">
+<meta property="article:modified_time" content="2022-07-08T14:03:50.810Z">
+<meta property="article:author" content="Keyun Luo">
+<meta property="article:tag" content="迅投QMT">
+<meta property="article:tag" content="量化交易">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://keyunluo.github.io/img/tick_data_store.png">
+  
+  
+  <title>迅投QMT历史行情转存Clickhouse数据库 - 流光</title>
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/github-gist.min.css" />
+    
+  
+
+  
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    var CONFIG = {"hostname":"keyunluo.github.io","root":"/","version":"1.8.14","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"right","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"copy_btn":true,"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"baidu":"e2bacb4062644434b87a03658392592e","google":null,"gtag":"G-7YSYVRNN9T","tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","app_key":"ODqlMdJWwrMxHFHzfz3pMvBS","server_url":"https://nqndu9io.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+
+<body>
+  <header style="height: 30vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>博客</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner" id="banner" parallax=true
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="page-header text-center fade-in-up">
+            <span class="h2" id="subtitle" title="迅投QMT历史行情转存Clickhouse数据库">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2022-07-03 12:00" pubdate>
+        2022年7月3日 中午
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      7.3k 字
+    </span>
+  
+
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      61 分钟
+    </span>
+  
+
+  
+  
+    
+      <!-- LeanCloud 统计文章PV -->
+      <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+        <i class="iconfont icon-eye" aria-hidden="true"></i>
+        <span id="leancloud-page-views"></span> 次
+      </span>
+    
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">迅投QMT历史行情转存Clickhouse数据库</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2022年7月8日 晚上
+                
+              </p>
+            
+            <div class="markdown-body">
+              <blockquote>
+<p>上文介绍如何获取批量股票代码并缓存对应的tick、分钟、日级别的历史数据，本节则介绍如何将读取本地的缓存数据并写入到clickhouse数据库中。历史行情数据从格式上看分为tick数据和K线数据两大类，针对这两类的数据我们分别处理。</p>
+</blockquote>
+<h2 id="Tick数据预处理"><a href="#Tick数据预处理" class="headerlink" title="Tick数据预处理"></a>Tick数据预处理</h2><p>首先读取本地缓存数据，这里以南航转债(<code>110075.SH</code>)为例，需要注意的是tick数据包含了集合竞价时段，成交量/额是按日累计的，因此需要做一定的转换。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></div></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> xtquant <span class="hljs-keyword">import</span> xtdata<br><span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd<br><span class="hljs-keyword">import</span> datetime<br><br><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_local_tick_data</span>(<span class="hljs-params">code=<span class="hljs-string">&#x27;110075.SH&#x27;</span>, start_time=<span class="hljs-string">&#x27;19700101&#x27;</span></span>):</span><br>    <span class="hljs-comment"># 获取本地数据</span><br>    df = xtdata.get_local_data(stock_code=[code], period=<span class="hljs-string">&#x27;tick&#x27;</span>, field_list=[<span class="hljs-string">&#x27;time&#x27;</span>, <span class="hljs-string">&#x27;open&#x27;</span>, <span class="hljs-string">&#x27;lastPrice&#x27;</span>, <span class="hljs-string">&#x27;high&#x27;</span>, <span class="hljs-string">&#x27;low&#x27;</span>, <span class="hljs-string">&#x27;lastClose&#x27;</span>, <span class="hljs-string">&#x27;volume&#x27;</span>, <span class="hljs-string">&#x27;amount&#x27;</span>, <span class="hljs-string">&#x27;askPrice&#x27;</span>, <span class="hljs-string">&#x27;bidPrice&#x27;</span>, <span class="hljs-string">&#x27;askVol&#x27;</span>, <span class="hljs-string">&#x27;bidVol&#x27;</span>], start_time=start_time, end_time=start_time)<br><br>    <span class="hljs-comment"># 转成DataFRame</span><br>    df = pd.DataFrame(df[code])<br>    <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(df) &lt; <span class="hljs-number">1</span>:<br>        <span class="hljs-keyword">return</span> df<br><br>    <span class="hljs-comment"># 日期处理</span><br>    df[<span class="hljs-string">&#x27;trade_time&#x27;</span>] = df[<span class="hljs-string">&#x27;time&#x27;</span>].apply(<span class="hljs-keyword">lambda</span> x: datetime.datetime.fromtimestamp(x / <span class="hljs-number">1000.0</span>)) <span class="hljs-comment"># , cn_tz</span><br>    df[<span class="hljs-string">&#x27;trade_day&#x27;</span>] = df[<span class="hljs-string">&#x27;trade_time&#x27;</span>].apply(<span class="hljs-keyword">lambda</span> x: x.date())<br>    df[<span class="hljs-string">&#x27;trade_minute&#x27;</span>] = df[<span class="hljs-string">&#x27;trade_time&#x27;</span>].apply(<span class="hljs-keyword">lambda</span> x: x.hour * <span class="hljs-number">60</span> + x.minute)<br>    df[<span class="hljs-string">&#x27;trade_second&#x27;</span>] = df[<span class="hljs-string">&#x27;trade_time&#x27;</span>].apply(<span class="hljs-keyword">lambda</span> x: x.hour * <span class="hljs-number">3600</span> + x.minute * <span class="hljs-number">60</span> + x.second)<br>    df = df[df.trade_second &lt;= <span class="hljs-number">54001</span>] <span class="hljs-comment"># 排除盘后交易</span><br>    df = df[df.trade_second &gt;= <span class="hljs-number">33840</span>] <span class="hljs-comment"># 保留最后一分钟的集合竞价数据</span><br>    df = df.reset_index(drop=<span class="hljs-literal">True</span>)<br><br>    <span class="hljs-comment"># 重新计算成交量、成交额</span><br>    df[<span class="hljs-string">&#x27;volume_deal&#x27;</span>] = df.groupby([<span class="hljs-string">&#x27;trade_day&#x27;</span>])[<span class="hljs-string">&#x27;volume&#x27;</span>].diff(periods=<span class="hljs-number">1</span>).fillna(<span class="hljs-number">0</span>)<br>    df[<span class="hljs-string">&#x27;amount_deal&#x27;</span>] = df.groupby([<span class="hljs-string">&#x27;trade_day&#x27;</span>])[<span class="hljs-string">&#x27;amount&#x27;</span>].diff(periods=<span class="hljs-number">1</span>).fillna(<span class="hljs-number">0</span>)<br><br>    <span class="hljs-comment"># 重新选择列</span><br>    df[<span class="hljs-string">&#x27;code&#x27;</span>] = <span class="hljs-string">&#x27;110075.SH&#x27;</span><br>    df[<span class="hljs-string">&#x27;close&#x27;</span>] = df[<span class="hljs-string">&#x27;lastPrice&#x27;</span>] <span class="hljs-comment"># 收盘</span><br>    df[<span class="hljs-string">&#x27;last&#x27;</span>] = df[<span class="hljs-string">&#x27;lastClose&#x27;</span>] <span class="hljs-comment"># 昨收</span><br>    df = df[[<span class="hljs-string">&#x27;code&#x27;</span>, <span class="hljs-string">&#x27;trade_time&#x27;</span>, <span class="hljs-string">&#x27;trade_day&#x27;</span>, <span class="hljs-string">&#x27;trade_minute&#x27;</span>, <span class="hljs-string">&#x27;open&#x27;</span>, <span class="hljs-string">&#x27;close&#x27;</span>, <span class="hljs-string">&#x27;high&#x27;</span>, <span class="hljs-string">&#x27;low&#x27;</span>, <span class="hljs-string">&#x27;last&#x27;</span>, <span class="hljs-string">&#x27;volume&#x27;</span>, <span class="hljs-string">&#x27;amount&#x27;</span>, <span class="hljs-string">&#x27;volume_deal&#x27;</span>, <span class="hljs-string">&#x27;amount_deal&#x27;</span>, <span class="hljs-string">&#x27;askPrice&#x27;</span>, <span class="hljs-string">&#x27;bidPrice&#x27;</span>, <span class="hljs-string">&#x27;askVol&#x27;</span>, <span class="hljs-string">&#x27;bidVol&#x27;</span>]]<br><br>    <span class="hljs-keyword">return</span> df<br><br>df = get_local_tick_data(code=<span class="hljs-string">&#x27;110075.SH&#x27;</span>, start_time=<span class="hljs-string">&#x27;20220630&#x27;</span>)<br><span class="hljs-built_in">print</span>(df.iloc[-<span class="hljs-number">1</span>])<br></code></pre></td></tr></table></figure>
+
+<p>最终，我们得到诸如下图的tick存储数据:</p>
+<p><img src="/img/tick_data_store.png" srcset="/img/loading.gif" lazyload></p>
+<h2 id="K线数据预处理"><a href="#K线数据预处理" class="headerlink" title="K线数据预处理"></a>K线数据预处理</h2><p>读取本地缓存数据，这里以行业板块指数为例，首先获取行业指数，然后查询详情，获取元数据:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_sector_list</span>():</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    获取沪深指数、行业指数</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    sector_1 = xtdata.get_stock_list_in_sector(<span class="hljs-string">&#x27;证监会行业板块指数&#x27;</span>)<br>    sector_1 = [(i, xtdata.get_instrument_detail(i)[<span class="hljs-string">&#x27;InstrumentName&#x27;</span>], <span class="hljs-string">&#x27;证监会一级行业&#x27;</span>) <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> sector_1]<br><br>    sector_2 = xtdata.get_stock_list_in_sector(<span class="hljs-string">&#x27;板块指数&#x27;</span>)<br>    sector_2 = [(i, xtdata.get_instrument_detail(i)[<span class="hljs-string">&#x27;InstrumentName&#x27;</span>], <span class="hljs-string">&#x27;证监会二级行业&#x27;</span>) <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> sector_2 <span class="hljs-keyword">if</span> i.startswith(<span class="hljs-string">&#x27;23&#x27;</span>)]<br><br><br>    index_code = [(<span class="hljs-string">&#x27;000001.SH&#x27;</span>, <span class="hljs-string">&#x27;上证指数&#x27;</span>, <span class="hljs-string">&#x27;大盘指数&#x27;</span>), (<span class="hljs-string">&#x27;399001.SZ&#x27;</span>, <span class="hljs-string">&#x27;深证成指&#x27;</span>, <span class="hljs-string">&#x27;大盘指数&#x27;</span>), (<span class="hljs-string">&#x27;399006.SZ&#x27;</span>, <span class="hljs-string">&#x27;创业板指&#x27;</span>, <span class="hljs-string">&#x27;大盘指数&#x27;</span>), (<span class="hljs-string">&#x27;000688.SH&#x27;</span>, <span class="hljs-string">&#x27;科创50&#x27;</span>, <span class="hljs-string">&#x27;大盘指数&#x27;</span>), (<span class="hljs-string">&#x27;000300.SH&#x27;</span>, <span class="hljs-string">&#x27;沪深300&#x27;</span>, <span class="hljs-string">&#x27;大盘指数&#x27;</span>), (<span class="hljs-string">&#x27;000016.SH&#x27;</span>, <span class="hljs-string">&#x27;上证50&#x27;</span>, <span class="hljs-string">&#x27;大盘指数&#x27;</span>), (<span class="hljs-string">&#x27;000905.SH&#x27;</span>, <span class="hljs-string">&#x27;中证500&#x27;</span>, <span class="hljs-string">&#x27;大盘指数&#x27;</span>), (<span class="hljs-string">&#x27;000852.SH&#x27;</span>, <span class="hljs-string">&#x27;中证1000&#x27;</span>, <span class="hljs-string">&#x27;大盘指数&#x27;</span>)]<br><br>    code_list = &#123;i[<span class="hljs-number">0</span>]: i[<span class="hljs-number">1</span>:] <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> sector_1 + sector_2 + index_code&#125;<br><br>    <span class="hljs-keyword">return</span> code_list<br></code></pre></td></tr></table></figure>
+
+<p>然后处理本地行情，这里以证监会二级行业行业中的餐饮业(<code>230130.BKZS</code>)为例:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_local_kline_data</span>(<span class="hljs-params">code=<span class="hljs-string">&#x27;230130.BKZS&#x27;</span>, start_time=<span class="hljs-string">&#x27;20200101&#x27;</span>, period=<span class="hljs-string">&#x27;1d&#x27;</span>, code_list =  get_sector_list(<span class="hljs-params"></span>)</span>):</span><br>    <span class="hljs-comment"># 获取本地数据</span><br>    df = xtdata.get_local_data(stock_code=[code], period=<span class="hljs-string">&#x27;1d&#x27;</span>, field_list=[<span class="hljs-string">&#x27;time&#x27;</span>, <span class="hljs-string">&#x27;open&#x27;</span>, <span class="hljs-string">&#x27;close&#x27;</span>, <span class="hljs-string">&#x27;high&#x27;</span>, <span class="hljs-string">&#x27;low&#x27;</span>, <span class="hljs-string">&#x27;volume&#x27;</span>, <span class="hljs-string">&#x27;amount&#x27;</span>], start_time=start_time, end_time=datetime.datetime.now().strftime(<span class="hljs-string">&#x27;%Y%m%d%H%M%S&#x27;</span>))<br>    df = pd.concat([df[i].T.rename(columns=&#123;code:i&#125;) <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> [<span class="hljs-string">&#x27;time&#x27;</span>, <span class="hljs-string">&#x27;open&#x27;</span>, <span class="hljs-string">&#x27;close&#x27;</span>, <span class="hljs-string">&#x27;high&#x27;</span>, <span class="hljs-string">&#x27;low&#x27;</span>, <span class="hljs-string">&#x27;volume&#x27;</span>, <span class="hljs-string">&#x27;amount&#x27;</span>]], axis=<span class="hljs-number">1</span>)<br><br>    <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(df) &lt; <span class="hljs-number">1</span>:<br>        <span class="hljs-keyword">return</span> df<br><br>    <span class="hljs-comment"># 时间转换</span><br>    df[<span class="hljs-string">&#x27;trade_day&#x27;</span>] = df[<span class="hljs-string">&#x27;time&#x27;</span>].apply(<span class="hljs-keyword">lambda</span> x: datetime.datetime.fromtimestamp(x / <span class="hljs-number">1000.0</span>).date())<br><br>    <span class="hljs-comment"># 重新选择列</span><br>    df[<span class="hljs-string">&#x27;code&#x27;</span>] = code<br>    df[<span class="hljs-string">&#x27;sector_name&#x27;</span>] = df[<span class="hljs-string">&#x27;code&#x27;</span>].apply(<span class="hljs-keyword">lambda</span> x: code_list[x][<span class="hljs-number">0</span>])<br>    df[<span class="hljs-string">&#x27;sector_type&#x27;</span>] = df[<span class="hljs-string">&#x27;code&#x27;</span>].apply(<span class="hljs-keyword">lambda</span> x: code_list[x][<span class="hljs-number">1</span>])<br>    df = df[[<span class="hljs-string">&#x27;code&#x27;</span>, <span class="hljs-string">&#x27;trade_day&#x27;</span>, <span class="hljs-string">&#x27;sector_name&#x27;</span>, <span class="hljs-string">&#x27;sector_type&#x27;</span>, <span class="hljs-string">&#x27;open&#x27;</span>, <span class="hljs-string">&#x27;close&#x27;</span>, <span class="hljs-string">&#x27;high&#x27;</span>, <span class="hljs-string">&#x27;low&#x27;</span>, <span class="hljs-string">&#x27;volume&#x27;</span>, <span class="hljs-string">&#x27;amount&#x27;</span>]]<br><br>    <span class="hljs-keyword">return</span> df<br></code></pre></td></tr></table></figure>
+<p><img src="/img/kline_data_store.png" srcset="/img/loading.gif" lazyload></p>
+<h2 id="Clickhouse数据库设计"><a href="#Clickhouse数据库设计" class="headerlink" title="Clickhouse数据库设计"></a>Clickhouse数据库设计</h2><p>这里选用Clickhouse，而不是MySQL的主要原因是性能问题。行情数据一旦写入，几乎不会更新，并且量非常大，没有复杂的表关联，MySQL在这种场景下主要的问题是存储空间占用多、读写慢，而ClickHouse主要用于在线分析处理查询（OLAP），具有高效的数据压缩、向量引擎、列式存储特性，非常适合金融行情数据存储。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-keyword">create</span> database xtquant<br><br><span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">TABLE</span> IF <span class="hljs-keyword">NOT</span> <span class="hljs-keyword">EXISTS</span> xtquant.bond_tick<br>(<br>    code String, <br>    trade_time DateTime(<span class="hljs-string">&#x27;Asia/Shanghai&#x27;</span>), <br>    trade_day <span class="hljs-type">Date</span>, <br>    trade_minute Int16, <br>    <span class="hljs-keyword">open</span> Nullable(Float32), <br>    <span class="hljs-keyword">close</span> Nullable(Float32), <br>    high Nullable(Float32), <br>    low Nullable(Float32), <br>    <span class="hljs-keyword">last</span> Nullable(Float32), <br>    volume Nullable(Float64), <br>    amount Nullable(Float64), <br>    volume_deal Nullable(Float32), <br>    amount_deal Nullable(Float32), <br>    askPrice <span class="hljs-keyword">Array</span>(Nullable(Float32)), <br>    bidPrice <span class="hljs-keyword">Array</span>(Nullable(Float32)), <br>    askVol <span class="hljs-keyword">Array</span>(Nullable(Float32)), <br>    bidVol <span class="hljs-keyword">Array</span>(Nullable(Float32))<br>)<br>ENGINE <span class="hljs-operator">=</span> ReplacingMergeTree()<br><span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> (trade_time, code, trade_day)<br><br><span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">TABLE</span> IF <span class="hljs-keyword">NOT</span> <span class="hljs-keyword">EXISTS</span> xtquant.sector_1d<br>(<br>    code String, <br>    trade_day <span class="hljs-type">Date</span>, <br>    sector_name String,<br>    sector_type String,<br>    <span class="hljs-keyword">open</span> Nullable(Float32), <br>    <span class="hljs-keyword">close</span> Nullable(Float32), <br>    high Nullable(Float32), <br>    low Nullable(Float32), <br>    volume Nullable(Float64), <br>    amount Nullable(Float64)<br>)<br>ENGINE <span class="hljs-operator">=</span> ReplacingMergeTree()<br><span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> (trade_day, code)<br></code></pre></td></tr></table></figure>
+<h2 id="Clickhouse数据批量写入"><a href="#Clickhouse数据批量写入" class="headerlink" title="Clickhouse数据批量写入"></a>Clickhouse数据批量写入</h2><p>设计好数据表后，利用<code>clickhouse_driver</code>库提供的接口将数据同步到数据库中。</p>
+<p>对于tick数据，按天来遍历插入，对于k线数据，则直接存入，为了增量同步，写入时可查询已有数据的最大时间，避免重复写。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> os<br><span class="hljs-keyword">from</span> clickhouse_driver <span class="hljs-keyword">import</span> Client<br><span class="hljs-keyword">from</span> tqdm <span class="hljs-keyword">import</span> tqdm<br><br>storage_client = Client(<span class="hljs-string">&#x27;10.0.16.11&#x27;</span>, password=<span class="hljs-string">&#x27;******&#x27;</span>, settings=&#123;<span class="hljs-string">&#x27;use_numpy&#x27;</span>: <span class="hljs-literal">True</span>&#125;)<br><br><span class="hljs-comment"># 可转债tick数据</span><br><span class="hljs-comment"># 获取可转债列表</span><br>_, bond_code_list = get_bond_history()<br><span class="hljs-keyword">for</span> code <span class="hljs-keyword">in</span> tqdm(bond_code_list):<br>    start_date = storage_client.execute(<span class="hljs-string">&quot;select max(trade_day) from xtquant.bond_tick where code=&#x27;&#123;&#125;&#x27;&quot;</span>.<span class="hljs-built_in">format</span>(code))<br>    start_date = <span class="hljs-built_in">str</span>(start_date[<span class="hljs-number">0</span>][<span class="hljs-number">0</span>]).replace(<span class="hljs-string">&#x27;-&#x27;</span>, <span class="hljs-string">&#x27;&#x27;</span>)<br>    start_date = <span class="hljs-built_in">max</span>(start_date, <span class="hljs-string">&#x27;20200401&#x27;</span>)<br>    trade_dates = xtdata.get_trading_dates(<span class="hljs-string">&#x27;SH&#x27;</span>, start_time=start_date, end_time=datetime.date.today().strftime(<span class="hljs-string">&#x27;%Y%m%d&#x27;</span>))<br>    <span class="hljs-keyword">for</span> day <span class="hljs-keyword">in</span> trade_dates:<br>        day = datetime.datetime.fromtimestamp(day / <span class="hljs-number">1000.0</span>).strftime(<span class="hljs-string">&#x27;%Y%m%d&#x27;</span>)<br>    df = get_local_tick_data(code=code, start_time=day)<br>    <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(df) &gt; <span class="hljs-number">0</span>:<br>        storage_client.insert_dataframe(<span class="hljs-string">&#x27;INSERT INTO xtquant.bond_tick VALUES&#x27;</span>, df)<br><br><span class="hljs-comment"># 行业1d数据</span><br><span class="hljs-comment"># 获取行业列表</span><br>sector_code_list = get_sector_list()<br><span class="hljs-keyword">for</span> code <span class="hljs-keyword">in</span> tqdm(sector_code_list):<br>    start_date = storage_client.execute(<span class="hljs-string">&quot;select max(trade_day) from xtquant.sector_1d where code=&#x27;&#123;&#125;&#x27;&quot;</span>.<span class="hljs-built_in">format</span>(code))<br>    start_date = <span class="hljs-built_in">str</span>(start_date[<span class="hljs-number">0</span>][<span class="hljs-number">0</span>]).replace(<span class="hljs-string">&#x27;-&#x27;</span>, <span class="hljs-string">&#x27;&#x27;</span>)<br>    start_date = <span class="hljs-built_in">max</span>(start_date, <span class="hljs-string">&#x27;20100101&#x27;</span>)<br>    df = get_local_kline_data(code=code, start_time=start_date, period=<span class="hljs-string">&#x27;1d&#x27;</span>, code_list =  sector_code_list)<br>    <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(df) &gt; <span class="hljs-number">0</span>:<br>        storage_client.insert_dataframe(<span class="hljs-string">&#x27;INSERT INTO xtquant.sector_1d VALUES&#x27;</span>, df)<br></code></pre></td></tr></table></figure>
+
+<p>运行如上代码后，我们便可在clickhouse客户端中查询到已经写入的数据：</p>
+<p><img src="/img/clickhouse_query.png" srcset="/img/loading.gif" lazyload></p>
+<p>至此，我们已经完成了历史数据到数据库中存储和增量写入。</p>
+<h4 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/5XI09nyStjmD0faYs9UIlw">初探迅投QMT极简策略系统</a></li>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/R2WquJUD4Mu6wuoFjoC3AQ">迅投QMT量化行情接口以及历史行情数据下载</a></li>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/l-pFVnqsWjLP1iBM63dD9Q">迅投QMT历史行情批量缓存</a></li>
+</ul>
+<hr>
+<p>欢迎关注我的公众号“<strong>量化实战</strong>”，原创技术文章第一时间推送。</p>
+<p><img src="/img/qrcode.png" srcset="/img/loading.gif" lazyload></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E8%BF%85%E6%8A%95QMT/">迅投QMT</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93/">量化交易</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">
+                  
+                    本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！
+                  
+                </p>
+              
+              
+                <div class="post-prevnext">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2022/07/08/AI%E9%A2%84%E6%B5%8B%E8%82%A1%E7%A5%A8%E4%B9%8B%E6%96%B0%E9%97%BB%E4%BA%8B%E4%BB%B6%E6%95%B0%E6%8D%AE/">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">基于新闻事件Bert序列建模的行业涨跌预测</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/07/01/%E8%BF%85%E6%8A%95QMT%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E6%89%B9%E9%87%8F%E7%BC%93%E5%AD%98/">
+                        <span class="hidden-mobile">迅投QMT历史行情批量缓存</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments" lazyload>
+                
+                  
+                
+                
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appKey":"ODqlMdJWwrMxHFHzfz3pMvBS","path":"window.location.pathname","placeholder":"说点什么","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":null,"emojiCDN":null,"emojiMaps":null,"enableQQ":false,"appid":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appkey":"ODqlMdJWwrMxHFHzfz3pMvBS"},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          Fluid.plugins.initFancyBox('#valine .vcontent img:not(.vemoji)');
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+  </main>
+
+  <footer class="text-center mt-5 py-3">
+  <div class="footer-content">
+     <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+  </div>
+  
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- LeanCloud 统计PV -->
+        <span id="leancloud-site-pv-container" style="display: none">
+            总访问量 
+            <span id="leancloud-site-pv"></span>
+             次
+          </span>
+      
+      
+        <!-- LeanCloud 统计UV -->
+        <span id="leancloud-site-uv-container" style="display: none">
+            总访客数 
+            <span id="leancloud-site-uv"></span>
+             人
+          </span>
+      
+
+    
+  </div>
+
+
+  
+  <!-- 备案信息 -->
+  <div class="beian">
+    <span>
+      <a href="http://beian.miit.gov.cn/" target="_blank" rel="nofollow noopener">
+        粤ICP备19097965号
+      </a>
+    </span>
+    
+  </div>
+
+
+  
+</footer>
+
+
+  <!-- SCRIPTS -->
+  
+  <script  src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" ></script>
+<script  src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+<!-- Plugins -->
+
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  
+    <script  src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js" ></script>
+  
+  
+    <script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js" ></script>
+  
+
+
+
+
+  <script defer src="/js/leancloud.js" ></script>
+
+
+
+  <script  src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var title = document.getElementById('subtitle').title;
+      
+        typing(title);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <!-- Baidu Analytics -->
+    <script defer>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?e2bacb4062644434b87a03658392592e";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+  
+
+  
+
+  
+    <!-- Google gtag.js -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YSYVRNN9T"></script>
+    <script defer>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-7YSYVRNN9T');
+    </script>
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+<!-- 主题的启动项 保持在最底部 -->
+<script  src="/js/boot.js" ></script>
+
+
+</body>
+</html>

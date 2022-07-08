@@ -1,0 +1,602 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.jpg">
+  <link rel="icon" href="/img/favicon.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Keyun Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="上文介绍了QMT行情接口概况和一个历史行情数据下载案例，本文进一步介绍如何获取批量股票代码并缓存对应的tick、分钟、日级别的历史数据。  获取股票名称列表QMT的行情函数暂时不能获取可转债列表，因此这里使用akshare库进行相关元数据的获取，使用前确保已安装。akshare库本身的功能十分强大，后续将详细展开，这里先不赘述。 首先导入相关的包： 1234from xtquant import">
+<meta property="og:type" content="article">
+<meta property="og:title" content="迅投QMT历史行情批量缓存">
+<meta property="og:url" content="https://keyunluo.github.io/2022/07/01/%E8%BF%85%E6%8A%95QMT%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E6%89%B9%E9%87%8F%E7%BC%93%E5%AD%98/index.html">
+<meta property="og:site_name" content="流光">
+<meta property="og:description" content="上文介绍了QMT行情接口概况和一个历史行情数据下载案例，本文进一步介绍如何获取批量股票代码并缓存对应的tick、分钟、日级别的历史数据。  获取股票名称列表QMT的行情函数暂时不能获取可转债列表，因此这里使用akshare库进行相关元数据的获取，使用前确保已安装。akshare库本身的功能十分强大，后续将详细展开，这里先不赘述。 首先导入相关的包： 1234from xtquant import">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://keyunluo.github.io/img/qrcode.png">
+<meta property="article:published_time" content="2022-07-01T02:00:00.000Z">
+<meta property="article:modified_time" content="2022-07-08T14:00:36.624Z">
+<meta property="article:author" content="Keyun Luo">
+<meta property="article:tag" content="迅投QMT">
+<meta property="article:tag" content="量化交易">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://keyunluo.github.io/img/qrcode.png">
+  
+  
+  <title>迅投QMT历史行情批量缓存 - 流光</title>
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/github-gist.min.css" />
+    
+  
+
+  
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    var CONFIG = {"hostname":"keyunluo.github.io","root":"/","version":"1.8.14","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"right","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"copy_btn":true,"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"baidu":"e2bacb4062644434b87a03658392592e","google":null,"gtag":"G-7YSYVRNN9T","tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","app_key":"ODqlMdJWwrMxHFHzfz3pMvBS","server_url":"https://nqndu9io.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+
+<body>
+  <header style="height: 30vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>博客</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner" id="banner" parallax=true
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="page-header text-center fade-in-up">
+            <span class="h2" id="subtitle" title="迅投QMT历史行情批量缓存">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2022-07-01 10:00" pubdate>
+        2022年7月1日 上午
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      3.8k 字
+    </span>
+  
+
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      32 分钟
+    </span>
+  
+
+  
+  
+    
+      <!-- LeanCloud 统计文章PV -->
+      <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+        <i class="iconfont icon-eye" aria-hidden="true"></i>
+        <span id="leancloud-page-views"></span> 次
+      </span>
+    
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">迅投QMT历史行情批量缓存</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2022年7月8日 晚上
+                
+              </p>
+            
+            <div class="markdown-body">
+              <blockquote>
+<p>上文介绍了QMT行情接口概况和一个历史行情数据下载案例，本文进一步介绍如何获取批量股票代码并缓存对应的tick、分钟、日级别的历史数据。</p>
+</blockquote>
+<h2 id="获取股票名称列表"><a href="#获取股票名称列表" class="headerlink" title="获取股票名称列表"></a>获取股票名称列表</h2><p>QMT的行情函数暂时不能获取可转债列表，因此这里使用<code>akshare</code>库进行相关元数据的获取，使用前确保已安装。<code>akshare</code>库本身的功能十分强大，后续将详细展开，这里先不赘述。</p>
+<p>首先导入相关的包：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></div></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> xtquant <span class="hljs-keyword">import</span> xtdata<br><span class="hljs-keyword">import</span> akshare <span class="hljs-keyword">as</span> ak<br><span class="hljs-keyword">from</span> tqdm <span class="hljs-keyword">import</span> tqdm<br><span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd<br></code></pre></td></tr></table></figure>
+
+<p>第一个接口是获取包含历史转债代码的列表，以方便同步历史数据，可转债上海市场以11开头，深圳市场以12开头，这里需要将akshare中来自东方财富的数据与QMT进行代码的对齐：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_bond_history</span>():</span><br>    bond_zh_cov_df = ak.bond_zh_cov()<br>    <span class="hljs-comment"># 排除至今未上市的转债</span><br>    bond_zh_cov_df =  bond_zh_cov_df[bond_zh_cov_df[<span class="hljs-string">&#x27;上市时间&#x27;</span>] &lt;= datetime.date.today()]<br>    stock_code_list, bond_code_list = [], []<br>    <span class="hljs-keyword">for</span> _, row <span class="hljs-keyword">in</span> bond_zh_cov_df.iterrows():<br>        <span class="hljs-keyword">if</span> row[<span class="hljs-string">&#x27;债券代码&#x27;</span>].startswith(<span class="hljs-string">&#x27;11&#x27;</span>):<br>            market = <span class="hljs-string">&#x27;.SH&#x27;</span><br>        <span class="hljs-keyword">else</span>:<br>            market = <span class="hljs-string">&#x27;.SZ&#x27;</span><br>        stock_code_list.append(row[<span class="hljs-string">&#x27;正股代码&#x27;</span>] + market)<br>        bond_code_list.append(row[<span class="hljs-string">&#x27;债券代码&#x27;</span>] + market)<br>    <span class="hljs-keyword">return</span> stock_code_list, bond_code_list<br></code></pre></td></tr></table></figure>
+
+<p>第二个接口是获取实时转债代码的列表，以方便增量更新，避免重复下载：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_bond_spot</span>():</span><br>    bond_cov_comparison_df = ak.bond_cov_comparison()<br>    <span class="hljs-comment"># 排除至今未上市的转债</span><br>    bond_cov_comparison_df =  bond_cov_comparison_df[bond_cov_comparison_df[<span class="hljs-string">&#x27;上市日期&#x27;</span>] !=<span class="hljs-string">&#x27;-&#x27;</span>]<br><br>    stock_code_list, bond_code_list = [], []<br>    <span class="hljs-keyword">for</span> _, row <span class="hljs-keyword">in</span> bond_cov_comparison_df.iterrows():<br>        <span class="hljs-keyword">if</span> row[<span class="hljs-string">&#x27;转债代码&#x27;</span>].startswith(<span class="hljs-string">&#x27;11&#x27;</span>):<br>            market = <span class="hljs-string">&#x27;.SH&#x27;</span><br>        <span class="hljs-keyword">else</span>:<br>            market = <span class="hljs-string">&#x27;.SZ&#x27;</span><br>        stock_code_list.append(row[<span class="hljs-string">&#x27;正股代码&#x27;</span>] + market)<br>        bond_code_list.append(row[<span class="hljs-string">&#x27;转债代码&#x27;</span>] + market)<br>    <span class="hljs-keyword">return</span> stock_code_list, bond_code_list<br></code></pre></td></tr></table></figure>
+
+<p>第三个接口是获取A股市场的沪深指数、所有A股、ETF、债券列表等股票代码，以便下载K线数据：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_shse_a_list</span>():</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    获取沪深指数、所有A股、ETF、债券列表</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    index_code = [<span class="hljs-string">&#x27;000001.SH&#x27;</span>, <span class="hljs-string">&#x27;399001.SZ&#x27;</span>, <span class="hljs-string">&#x27;399006.SZ&#x27;</span>, <span class="hljs-string">&#x27;000688.SH&#x27;</span>, <span class="hljs-string">&#x27;000300.SH&#x27;</span>, <span class="hljs-string">&#x27;000016.SH&#x27;</span>, <span class="hljs-string">&#x27;000905.SH&#x27;</span>, <span class="hljs-string">&#x27;000852.SH&#x27;</span>] <span class="hljs-comment"># 上证指数、深证成指、创业板指、科创50、沪深300、上证50、中证500、中证1000</span><br>    a_code = xtdata.get_stock_list_in_sector(<span class="hljs-string">&#x27;沪深A股&#x27;</span>)<br>    etf_code =  xtdata.get_stock_list_in_sector(<span class="hljs-string">&#x27;沪深ETF&#x27;</span>)<br>    <span class="hljs-comment">#bond_code = [i for i in xtdata.get_stock_list_in_sector(&#x27;沪深债券&#x27;) if i[:3] in &#123;&#x27;110&#x27;,  &#x27;111&#x27;, &#x27;113&#x27;, &#x27;118&#x27;, &#x27;123&#x27;, &#x27;127&#x27;, &#x27;128&#x27;&#125;]</span><br>    bond_code = get_bond_history()[-<span class="hljs-number">1</span>]<br><br>    <span class="hljs-keyword">return</span> index_code + a_code + etf_code + bond_code<br></code></pre></td></tr></table></figure>
+
+<h2 id="批量下载可转债tick数据"><a href="#批量下载可转债tick数据" class="headerlink" title="批量下载可转债tick数据"></a>批量下载可转债tick数据</h2><p>通过控制参数<code>init</code>来决定是否增量下载(以天为粒度)：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">download_history_bond_tick</span>(<span class="hljs-params">init=<span class="hljs-number">1</span></span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    下载历史转债tick数据(20200401起)</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    <span class="hljs-comment"># 初始化：获取转债及其正股代码</span><br>    <span class="hljs-keyword">if</span> init:<br>        <span class="hljs-comment"># 包含历史过期代码</span><br>        stock_code_list, bond_code_list = get_bond_history()<br>    <span class="hljs-keyword">else</span>:<br>        <span class="hljs-comment"># 仅当日代码</span><br>        stock_code_list, bond_code_list = get_bond_spot()<br>    <br>    <span class="hljs-comment"># 数据下载目录</span><br>    data_dir = <span class="hljs-string">&#x27;E:\\QMT\\userdata_mini\\datadir\\&#x27;</span><br>    <span class="hljs-keyword">for</span> stock, bond <span class="hljs-keyword">in</span> tqdm(<span class="hljs-built_in">zip</span>(stock_code_list, bond_code_list), total=<span class="hljs-built_in">len</span>(stock_code_list)):<br>        <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;开始下载：股票 &#123;&#125;, 转债 &#123;&#125;&quot;</span>.<span class="hljs-built_in">format</span>(stock, bond))<br>        <span class="hljs-comment"># 上海转债: 已下载的数据</span><br>        <span class="hljs-keyword">if</span> bond.endswith(<span class="hljs-string">&quot;SH&quot;</span>):<br>            dir_path = data_dir + <span class="hljs-string">&quot;\\SH\\0\\&quot;</span> + bond.split(<span class="hljs-string">&#x27;.&#x27;</span>, <span class="hljs-number">1</span>)[<span class="hljs-number">0</span>]<br>        <span class="hljs-comment"># 深圳转债：已下载的数据</span><br>        <span class="hljs-keyword">else</span>:<br>            dir_path = data_dir + <span class="hljs-string">&quot;\\SZ\\0\\&quot;</span> + bond.split(<span class="hljs-string">&#x27;.&#x27;</span>, <span class="hljs-number">1</span>)[<span class="hljs-number">0</span>]<br>        <br>        start_date = <span class="hljs-string">&#x27;20200401&#x27;</span> <span class="hljs-comment"># QMT支持的最久数据时间</span><br>        <span class="hljs-comment"># 如果路径存在，断点续传，重设起点下载时间</span><br>        <span class="hljs-keyword">if</span> os.path.exists(dir_path):<br>            downloaded = os.listdir(dir_path)<br>            <span class="hljs-comment"># 获取已下载的最大日期，作为本次同步的起始时间</span><br>            <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(downloaded) &gt; <span class="hljs-number">0</span>:<br>                start_date = <span class="hljs-built_in">max</span>(downloaded).split(<span class="hljs-string">&#x27;.&#x27;</span>, <span class="hljs-number">1</span>)[<span class="hljs-number">0</span>]<br>            <br>        xtdata.download_history_data(stock_code=bond, period=<span class="hljs-string">&#x27;tick&#x27;</span>, start_time=start_date)<br><br></code></pre></td></tr></table></figure>
+
+<h2 id="批量下载K线"><a href="#批量下载K线" class="headerlink" title="批量下载K线"></a>批量下载K线</h2><p>通过传入参数<code>start_time</code>设置起始下载时间，参数<code>period</code>设置K线类型:</p>
+<ul>
+<li>1m: 1分钟K线</li>
+<li>1d: 1日K线</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">download_history_kline</span>(<span class="hljs-params">code_list, start_time=<span class="hljs-string">&#x27;&#x27;</span>, period=<span class="hljs-string">&#x27;1m&#x27;</span></span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    下载历史K线数据:</span><br><span class="hljs-string">    code_list: 股票代码， 如：get_shse_a_list()</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;本次开始下载的时间为：&quot;</span>, datetime.datetime.now().strftime(<span class="hljs-string">&quot;%Y%m%d%H%M%S&quot;</span>))<br>    <span class="hljs-keyword">for</span> code <span class="hljs-keyword">in</span> tqdm(code_list):<br>        xtdata.download_history_data(code, period=period, start_time=start_time)<br><br></code></pre></td></tr></table></figure>
+
+<p>经过漫长的等待，本地便会有历史数据的缓存了，存储的目录形式为<code>datadir\SH\&#123;0|60|86400&#125;\&#123;code&#125;</code>，便于我们进一步加工处理。</p>
+<p>至此，我们已经缓存了许多历史数据，并且可以增量更新，保存到数据库中供后续分析。</p>
+<h4 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/5XI09nyStjmD0faYs9UIlw">初探迅投QMT极简策略系统</a></li>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/R2WquJUD4Mu6wuoFjoC3AQ">迅投QMT量化行情接口以及历史行情数据下载</a></li>
+</ul>
+<hr>
+<p>欢迎关注我的公众号“<strong>量化实战</strong>”，原创技术文章第一时间推送。</p>
+<p><img src="/img/qrcode.png" srcset="/img/loading.gif" lazyload></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E8%BF%85%E6%8A%95QMT/">迅投QMT</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93/">量化交易</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">
+                  
+                    本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！
+                  
+                </p>
+              
+              
+                <div class="post-prevnext">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2022/07/03/%E8%BF%85%E6%8A%95QMT%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E8%BD%AC%E5%AD%98Clickhouse%E6%95%B0%E6%8D%AE%E5%BA%93/">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">迅投QMT历史行情转存Clickhouse数据库</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/06/27/QMT%E8%A1%8C%E6%83%85%E6%8E%A5%E5%8F%A3%E4%BB%A5%E5%8F%8A%E5%8E%86%E5%8F%B2%E8%A1%8C%E6%83%85%E6%95%B0%E6%8D%AE%E4%B8%8B%E8%BD%BD/">
+                        <span class="hidden-mobile">QMT行情接口以及历史行情数据下载</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments" lazyload>
+                
+                  
+                
+                
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appKey":"ODqlMdJWwrMxHFHzfz3pMvBS","path":"window.location.pathname","placeholder":"说点什么","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":null,"emojiCDN":null,"emojiMaps":null,"enableQQ":false,"appid":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appkey":"ODqlMdJWwrMxHFHzfz3pMvBS"},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          Fluid.plugins.initFancyBox('#valine .vcontent img:not(.vemoji)');
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+  </main>
+
+  <footer class="text-center mt-5 py-3">
+  <div class="footer-content">
+     <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+  </div>
+  
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- LeanCloud 统计PV -->
+        <span id="leancloud-site-pv-container" style="display: none">
+            总访问量 
+            <span id="leancloud-site-pv"></span>
+             次
+          </span>
+      
+      
+        <!-- LeanCloud 统计UV -->
+        <span id="leancloud-site-uv-container" style="display: none">
+            总访客数 
+            <span id="leancloud-site-uv"></span>
+             人
+          </span>
+      
+
+    
+  </div>
+
+
+  
+  <!-- 备案信息 -->
+  <div class="beian">
+    <span>
+      <a href="http://beian.miit.gov.cn/" target="_blank" rel="nofollow noopener">
+        粤ICP备19097965号
+      </a>
+    </span>
+    
+  </div>
+
+
+  
+</footer>
+
+
+  <!-- SCRIPTS -->
+  
+  <script  src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" ></script>
+<script  src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+<!-- Plugins -->
+
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  
+    <script  src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js" ></script>
+  
+  
+    <script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js" ></script>
+  
+
+
+
+
+  <script defer src="/js/leancloud.js" ></script>
+
+
+
+  <script  src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var title = document.getElementById('subtitle').title;
+      
+        typing(title);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <!-- Baidu Analytics -->
+    <script defer>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?e2bacb4062644434b87a03658392592e";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+  
+
+  
+
+  
+    <!-- Google gtag.js -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YSYVRNN9T"></script>
+    <script defer>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-7YSYVRNN9T');
+    </script>
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+<!-- 主题的启动项 保持在最底部 -->
+<script  src="/js/boot.js" ></script>
+
+
+</body>
+</html>
