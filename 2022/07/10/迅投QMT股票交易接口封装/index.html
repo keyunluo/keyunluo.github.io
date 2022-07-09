@@ -1,0 +1,603 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.jpg">
+  <link rel="icon" href="/img/favicon.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Keyun Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="迅投QMT量化平台提供了极简客户端，可直接使用Python调用其提供的交易功能。本文使用Python中的Sanic异步框架将交易接口进一步封装成HTTP访问接口，方便从远程Linux主机调用。  定义全局环境导入xtquant库、aiohttp库、sanic库,设置访问路由为&#x2F;xtquant&#x2F;trade，运行的http端口为7800： 123456789101112131415161718192">
+<meta property="og:type" content="article">
+<meta property="og:title" content="迅投QMT量化平台交易接口封装">
+<meta property="og:url" content="https://keyunluo.github.io/2022/07/10/%E8%BF%85%E6%8A%95QMT%E8%82%A1%E7%A5%A8%E4%BA%A4%E6%98%93%E6%8E%A5%E5%8F%A3%E5%B0%81%E8%A3%85/index.html">
+<meta property="og:site_name" content="流光">
+<meta property="og:description" content="迅投QMT量化平台提供了极简客户端，可直接使用Python调用其提供的交易功能。本文使用Python中的Sanic异步框架将交易接口进一步封装成HTTP访问接口，方便从远程Linux主机调用。  定义全局环境导入xtquant库、aiohttp库、sanic库,设置访问路由为&#x2F;xtquant&#x2F;trade，运行的http端口为7800： 123456789101112131415161718192">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+<meta property="article:published_time" content="2022-07-10T00:00:00.000Z">
+<meta property="article:modified_time" content="2022-07-09T17:32:45.963Z">
+<meta property="article:author" content="Keyun Luo">
+<meta property="article:tag" content="迅投QMT">
+<meta property="article:tag" content="量化交易">
+<meta property="article:tag" content="交易接口">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+  
+  
+  <title>迅投QMT量化平台交易接口封装 - 流光</title>
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/github-gist.min.css" />
+    
+  
+
+  
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    var CONFIG = {"hostname":"keyunluo.github.io","root":"/","version":"1.8.14","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"right","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"copy_btn":true,"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"baidu":"e2bacb4062644434b87a03658392592e","google":null,"gtag":"G-7YSYVRNN9T","tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","app_key":"ODqlMdJWwrMxHFHzfz3pMvBS","server_url":"https://nqndu9io.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+
+<body>
+  <header style="height: 30vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>博客</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner" id="banner" parallax=true
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="page-header text-center fade-in-up">
+            <span class="h2" id="subtitle" title="迅投QMT量化平台交易接口封装">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2022-07-10 08:00" pubdate>
+        2022年7月10日 早上
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      7.8k 字
+    </span>
+  
+
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      65 分钟
+    </span>
+  
+
+  
+  
+    
+      <!-- LeanCloud 统计文章PV -->
+      <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+        <i class="iconfont icon-eye" aria-hidden="true"></i>
+        <span id="leancloud-page-views"></span> 次
+      </span>
+    
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">迅投QMT量化平台交易接口封装</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2022年7月10日 凌晨
+                
+              </p>
+            
+            <div class="markdown-body">
+              <blockquote>
+<p>迅投QMT量化平台提供了极简客户端，可直接使用Python调用其提供的交易功能。本文使用Python中的Sanic异步框架将交易接口进一步封装成HTTP访问接口，方便从远程Linux主机调用。</p>
+</blockquote>
+<h2 id="定义全局环境"><a href="#定义全局环境" class="headerlink" title="定义全局环境"></a>定义全局环境</h2><p>导入xtquant库、aiohttp库、sanic库,设置访问路由为<code>/xtquant/trade</code>，运行的http端口为7800：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></div></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> xtquant <span class="hljs-keyword">import</span> xtdata, xttrader, xtconstant<br><span class="hljs-keyword">from</span> xtquant.xttrader <span class="hljs-keyword">import</span> XtQuantTrader, XtQuantTraderCallback<br><span class="hljs-keyword">from</span> xtquant.xttype <span class="hljs-keyword">import</span> StockAccount<br><span class="hljs-keyword">import</span> aiohttp, random<br><span class="hljs-keyword">from</span> sanic <span class="hljs-keyword">import</span> Sanic, Blueprint, response<br><br>api = Blueprint(<span class="hljs-string">&#x27;xtquant&#x27;</span>, url_prefix=<span class="hljs-string">&#x27;/xtquant/trade&#x27;</span>)<br><br><span class="hljs-meta">@api.listener(<span class="hljs-params"><span class="hljs-string">&#x27;before_server_start&#x27;</span></span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">before_server_start</span>(<span class="hljs-params">app, loop</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;全局共享session&#x27;&#x27;&#x27;</span><br>    <span class="hljs-keyword">global</span> session, trader<br>    jar = aiohttp.CookieJar(unsafe=<span class="hljs-literal">True</span>)<br>    session = aiohttp.ClientSession(cookie_jar=jar, connector=aiohttp.TCPConnector(ssl=<span class="hljs-literal">False</span>))<br>    trader = Trader()<br><br><span class="hljs-meta">@api.listener(<span class="hljs-params"><span class="hljs-string">&#x27;after_server_stop&#x27;</span></span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">after_server_stop</span>(<span class="hljs-params">app, loop</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;关闭session&#x27;&#x27;&#x27;</span><br>    <span class="hljs-keyword">await</span> session.close()<br><br><br>order_status = &#123;<br>    xtconstant.ORDER_UNREPORTED: <span class="hljs-string">&#x27;未报&#x27;</span>,<br>    xtconstant.ORDER_WAIT_REPORTING: <span class="hljs-string">&#x27;待报&#x27;</span>,<br>    xtconstant.ORDER_REPORTED: <span class="hljs-string">&#x27;已报&#x27;</span>,<br>    xtconstant.ORDER_REPORTED_CANCEL: <span class="hljs-string">&#x27;已报待撤&#x27;</span>,<br>    xtconstant.ORDER_PARTSUCC_CANCEL: <span class="hljs-string">&#x27;部成待撤&#x27;</span>,<br>    xtconstant.ORDER_PART_CANCEL: <span class="hljs-string">&#x27;部撤&#x27;</span>,<br>    xtconstant.ORDER_CANCELED: <span class="hljs-string">&#x27;已撤&#x27;</span>,<br>    xtconstant.ORDER_PART_SUCC: <span class="hljs-string">&#x27;部成&#x27;</span>,<br>    xtconstant.ORDER_SUCCEEDED: <span class="hljs-string">&#x27;已成&#x27;</span>,<br>    xtconstant.ORDER_JUNK: <span class="hljs-string">&#x27;废单&#x27;</span>,<br>    xtconstant.ORDER_UNKNOWN: <span class="hljs-string">&#x27;未知&#x27;</span><br>&#125;<br><br><span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">&#x27;__main__&#x27;</span>:<br>    app = Sanic(name=<span class="hljs-string">&#x27;xtquant&#x27;</span>)<br>    app.config.RESPONSE_TIMEOUT = <span class="hljs-number">600000</span><br>    app.config.REQUEST_TIMEOUT = <span class="hljs-number">600000</span><br>    app.config.KEEP_ALIVE_TIMEOUT = <span class="hljs-number">600</span><br>    app.blueprint(api)<br>    app.run(host=<span class="hljs-string">&#x27;0.0.0.0&#x27;</span>, port=<span class="hljs-number">7800</span>, workers=<span class="hljs-number">1</span>, auto_reload=<span class="hljs-literal">True</span>, debug=<span class="hljs-literal">False</span>)<br><br><br></code></pre></td></tr></table></figure>
+
+
+<h2 id="定义交易账户全局信息类"><a href="#定义交易账户全局信息类" class="headerlink" title="定义交易账户全局信息类"></a>定义交易账户全局信息类</h2><p>这里使用单例模式，确保Trader中的RPC实例和账户信息唯一：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Singleton</span>(<span class="hljs-params"><span class="hljs-built_in">object</span></span>):</span><br>    _instance = <span class="hljs-literal">None</span><br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__new__</span>(<span class="hljs-params">class_, *args, **kwargs</span>):</span><br>        <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-built_in">isinstance</span>(class_._instance, class_):<br>            class_._instance = <span class="hljs-built_in">object</span>.__new__(class_, *args, **kwargs)<br>        <span class="hljs-keyword">return</span> class_._instance<br><br><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Trader</span>(<span class="hljs-params">Singleton</span>):</span><br>    xt_trader = <span class="hljs-literal">None</span><br>    account = <span class="hljs-literal">None</span><br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">set_trader</span>(<span class="hljs-params">self, qmt_dir, session_id</span>):</span><br>        self.xt_trader = XtQuantTrader(qmt_dir, session_id)<br>        <span class="hljs-comment"># 启动交易线程</span><br>        self.xt_trader.start()<br>        <span class="hljs-comment"># 建立交易连接，返回0表示连接成功</span><br>        connect_result = self.xt_trader.connect()<br>        <span class="hljs-keyword">return</span> connect_result<br>    <br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">set_account</span>(<span class="hljs-params">self, account_id, account_type</span>):</span><br>        self.account = StockAccount(account_id, account_type=account_type)<br>        <span class="hljs-keyword">return</span> self.account<br><br><span class="hljs-meta">    @property</span><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_account</span>(<span class="hljs-params">self</span>):</span><br>        <span class="hljs-keyword">return</span> self.account<br>    <br><span class="hljs-meta">    @property</span><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_trader</span>(<span class="hljs-params">self</span>):</span><br>        <span class="hljs-keyword">return</span> self.xt_trader<br></code></pre></td></tr></table></figure>
+
+<h2 id="账号登录"><a href="#账号登录" class="headerlink" title="账号登录"></a>账号登录</h2><p>随机设置一个session_id值，并传入极简客户端用户目录和账号ID、类型，连接客户端：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs python"><br><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/login&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">login</span>(<span class="hljs-params">request</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    账号登录</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    session_id = <span class="hljs-built_in">int</span>(request.args.get(<span class="hljs-string">&quot;session_id&quot;</span>, random.randint(<span class="hljs-number">20000</span>, <span class="hljs-number">60000</span>)))<br>    qmt_dir = request.args.get(<span class="hljs-string">&quot;qmt_dir&quot;</span>, <span class="hljs-string">&#x27;C:\\gszq\\qmt\\userdata_mini&#x27;</span>)<br>    account_id = request.args.get(<span class="hljs-string">&quot;account_id&quot;</span>, <span class="hljs-string">&#x27;&#x27;</span>)<br>    account_type = request.args.get(<span class="hljs-string">&quot;account_type&quot;</span>, <span class="hljs-string">&#x27;STOCK&#x27;</span>) <span class="hljs-comment"># 账号类型，可选STOCK、CREDIT</span><br><br>    connect_result = trader.set_trader(qmt_dir, session_id)<br>    trader.set_account(account_id, account_type=account_type)<br><br>    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;交易连接成功！&quot;</span>) <span class="hljs-keyword">if</span> connect_result == <span class="hljs-number">0</span> <span class="hljs-keyword">else</span> <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;交易连接失败！&quot;</span>)<br>    <span class="hljs-keyword">return</span> response.json(&#123;<span class="hljs-string">&quot;status&quot;</span>: connect_result&#125;)<br><br></code></pre></td></tr></table></figure>
+
+<h2 id="查询功能封装"><a href="#查询功能封装" class="headerlink" title="查询功能封装"></a>查询功能封装</h2><p>查询资产、当前持仓、当日成交、当日委托等：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/query/assets&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">query_assets</span>(<span class="hljs-params">request</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    查询总资产</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    asset = trader.xt_trader.query_stock_asset(trader.account)<br>    <span class="hljs-keyword">return</span> response.json(&#123;<span class="hljs-string">&quot;总资产&quot;</span>: asset.total_asset, <span class="hljs-string">&quot;现金&quot;</span>: asset.cash, <span class="hljs-string">&quot;持仓市值&quot;</span>: asset.market_value, <span class="hljs-string">&quot;冻结金额&quot;</span>: asset.frozen_cash&#125;)<br><br><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/query/holding&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">query_holding</span>(<span class="hljs-params">request</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    查询当前持仓</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    holding = []<br>    <span class="hljs-keyword">for</span> p <span class="hljs-keyword">in</span> trader.xt_trader.query_stock_positions(trader.account):<br>        holding.append([&#123;<span class="hljs-string">&#x27;股票代码&#x27;</span>: p.stock_code, <span class="hljs-string">&#x27;持仓&#x27;</span>: p.volume, <span class="hljs-string">&#x27;可用持仓&#x27;</span>: p.can_use_volume, <span class="hljs-string">&#x27;成本&#x27;</span>: p.open_price, <span class="hljs-string">&#x27;持仓市值&#x27;</span>: p.market_value&#125;])<br>    <span class="hljs-keyword">return</span> response.json(holding, ensure_ascii=<span class="hljs-literal">False</span>)<br><br><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/query/trade&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">query_trade</span>(<span class="hljs-params">request</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    查询当日成交</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    trades = trader.xt_trader.query_stock_trades(trader.account)<br><br>    result = []<br>    <span class="hljs-keyword">for</span> trade <span class="hljs-keyword">in</span> trades:<br>        result.append(&#123;<span class="hljs-string">&#x27;股票代码&#x27;</span>: trade.stock_code, <span class="hljs-string">&#x27;委托类型&#x27;</span>: trade.order_type, <span class="hljs-string">&#x27;成交数量&#x27;</span>: trade.traded_volume, <span class="hljs-string">&#x27;成交均价&#x27;</span>: trade.traded_price, <span class="hljs-string">&#x27;成交金额&#x27;</span>: trade.traded_amount, <span class="hljs-string">&#x27;成交时间&#x27;</span>: trade.traded_time, <span class="hljs-string">&quot;成交编号&quot;</span>: trade.traded_id, <span class="hljs-string">&quot;柜台合同编号&quot;</span>: trade.order_sysid&#125;)<br>    <span class="hljs-keyword">return</span> response.json(result, ensure_ascii=<span class="hljs-literal">False</span>)<br><br><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/query/order&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">query_order</span>(<span class="hljs-params">request</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    查询当日委托</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    order_id = request.args.get(<span class="hljs-string">&#x27;order_id&#x27;</span>, <span class="hljs-string">&#x27;&#x27;</span>)<br>    <span class="hljs-keyword">if</span> order_id == <span class="hljs-string">&#x27;&#x27;</span>:<br>        orders = trader.xt_trader.query_stock_orders(trader.account)<br>    <span class="hljs-keyword">else</span>:<br>        orders = trader.xt_trader.query_stock_order(trader.account, <span class="hljs-built_in">int</span>(order_id))<br>        <span class="hljs-comment"># 订单不存在，下单失败</span><br>        <span class="hljs-keyword">if</span> orders <span class="hljs-keyword">is</span> <span class="hljs-literal">None</span>:<br>            <span class="hljs-keyword">return</span> response.json([], ensure_ascii=<span class="hljs-literal">False</span>)<br>        orders = [orders]<br>    result = []<br>    <span class="hljs-keyword">for</span> order <span class="hljs-keyword">in</span> orders:<br>        result.append(&#123;<span class="hljs-string">&#x27;股票代码&#x27;</span>: order.stock_code, <span class="hljs-string">&#x27;委托数量&#x27;</span>: order.order_volume, <span class="hljs-string">&#x27;成交数量&#x27;</span>: order.traded_volume, <span class="hljs-string">&#x27;委托价格&#x27;</span>: order.price, <span class="hljs-string">&#x27;委托类型&#x27;</span>: order.order_type, <span class="hljs-string">&#x27;委托状态&#x27;</span>: order_status.get(order.order_status), <span class="hljs-string">&quot;订单编号&quot;</span>: order.order_id, <span class="hljs-string">&quot;柜台合同编号&quot;</span>: order.order_sysid, <span class="hljs-string">&quot;报单时间&quot;</span>: order.order_time&#125;)<br>    <span class="hljs-keyword">return</span> response.json(result, ensure_ascii=<span class="hljs-literal">False</span>)<br></code></pre></td></tr></table></figure>
+
+<h2 id="交易功能封装"><a href="#交易功能封装" class="headerlink" title="交易功能封装"></a>交易功能封装</h2><p>包含下单和撤单两类，下单成功会返回一个大于0的订单号，撤单只需传入这个订单号即可，撤单成功返回0。</p>
+<p> <code>注意</code>：有时会存在下单失败的情况，因此最好下单后使用<strong>查询当日委托</strong>接口查询订单是否真的传送到客户端，如果不存在则重新下单</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/place_order&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">trade_place_order</span>(<span class="hljs-params">request</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    下单</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    stock_code = request.args.get(<span class="hljs-string">&#x27;stock_code&#x27;</span>, <span class="hljs-string">&#x27;510300.SH&#x27;</span>)<br>    direction = xtconstant.STOCK_BUY <span class="hljs-keyword">if</span> request.args.get(<span class="hljs-string">&#x27;direction&#x27;</span>, <span class="hljs-string">&#x27;buy&#x27;</span>) == <span class="hljs-string">&#x27;buy&#x27;</span> <span class="hljs-keyword">else</span> xtconstant.STOCK_SELL<br>    volumn = <span class="hljs-built_in">int</span>(request.args.get(<span class="hljs-string">&#x27;volumn&#x27;</span>, <span class="hljs-string">&#x27;100&#x27;</span>))<br>    price = <span class="hljs-built_in">float</span>(request.args.get(<span class="hljs-string">&#x27;price&#x27;</span>, <span class="hljs-string">&#x27;4.4&#x27;</span>))<br>    order_id = trader.xt_trader.order_stock(trader.account, stock_code, direction, volumn, xtconstant.FIX_PRICE, price, <span class="hljs-string">&#x27;strategy_name&#x27;</span>, <span class="hljs-string">&#x27;remark&#x27;</span>)<br>    <span class="hljs-keyword">return</span> response.json(&#123;<span class="hljs-string">&#x27;order_id&#x27;</span>: order_id&#125;, ensure_ascii=<span class="hljs-literal">False</span>)<br><br><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/cancel_order&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">trade_cancel_order</span>(<span class="hljs-params">request</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    撤单</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    order_id = <span class="hljs-built_in">int</span>(request.args.get(<span class="hljs-string">&#x27;order_id&#x27;</span>, <span class="hljs-string">&#x27;0&#x27;</span>))<br>    cancel_order_result = trader.xt_trader.cancel_order_stock(trader.account, order_id)<br>    <span class="hljs-keyword">return</span> response.json(&#123;<span class="hljs-string">&#x27;cancel_order_result&#x27;</span>: cancel_order_result&#125;, ensure_ascii=<span class="hljs-literal">False</span>)<br></code></pre></td></tr></table></figure>
+
+<h2 id="功能测试"><a href="#功能测试" class="headerlink" title="功能测试"></a>功能测试</h2><p>1 登录</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> requests<br><span class="hljs-built_in">print</span>(requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7800/xtquant/trade/login?account_id=******&#x27;</span>).json())<br><br>&#123;<span class="hljs-string">&#x27;status&#x27;</span>: <span class="hljs-number">0</span>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>2 下单</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-built_in">print</span>(requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7800/xtquant/trade/place_order?stock_code=113025.SH&amp;price=300&amp;volumn=10&#x27;</span>).json())<br><br>&#123;<span class="hljs-string">&#x27;order_id&#x27;</span>: <span class="hljs-number">403701775</span>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>3 撤单</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-built_in">print</span>(requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7800/xtquant/trade/cancel_order?order_id=403701775&#x27;</span>).json())<br><br>&#123;<span class="hljs-string">&#x27;cancel_order_result&#x27;</span>: <span class="hljs-number">0</span>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>4 查询订单</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-built_in">print</span>(requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7800/xtquant/trade/query/order?order_id=403701775&#x27;</span>).json())<br><br>[&#123;<span class="hljs-string">&#x27;股票代码&#x27;</span>: <span class="hljs-string">&#x27;113025.SH&#x27;</span>, <span class="hljs-string">&#x27;委托数量&#x27;</span>: <span class="hljs-number">10</span>, <span class="hljs-string">&#x27;成交数量&#x27;</span>: <span class="hljs-number">0</span>, <span class="hljs-string">&#x27;委托价格&#x27;</span>: <span class="hljs-number">300.0</span>, <span class="hljs-string">&#x27;委托类型&#x27;</span>: <span class="hljs-number">23</span>, <span class="hljs-string">&#x27;委托状态&#x27;</span>: <span class="hljs-string">&#x27;已撤&#x27;</span>, <span class="hljs-string">&#x27;订单编号&#x27;</span>: <span class="hljs-number">403701775</span>, <span class="hljs-string">&#x27;柜台合同编号&#x27;</span>: <span class="hljs-string">&#x27;131&#x27;</span>, <span class="hljs-string">&#x27;报单时间&#x27;</span>: <span class="hljs-number">165721</span>*****&#125;]<br></code></pre></td></tr></table></figure>
+
+<p>注意：<font color='red'>仅供参考，使用后果自负，由此造成的损失概不负责。为保证安全请设置访问防火墙，禁止用于非法用途！</font></p>
+<h4 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/5XI09nyStjmD0faYs9UIlw">初探迅投QMT极简策略系统</a></li>
+</ul>
+<hr>
+<p>欢迎关注我的公众号“<strong>量化实战</strong>”，原创技术文章第一时间推送。</p>
+<p><img src="/img/qrcode.jpg" srcset="/img/loading.gif" lazyload></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E8%BF%85%E6%8A%95QMT/">迅投QMT</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93/">量化交易</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E4%BA%A4%E6%98%93%E6%8E%A5%E5%8F%A3/">交易接口</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">
+                  
+                    本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！
+                  
+                </p>
+              
+              
+                <div class="post-prevnext">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/07/09/%E5%88%A9%E7%94%A8pandas_ta%E8%87%AA%E5%8A%A8%E6%8F%90%E5%8F%96%E6%8A%80%E6%9C%AF%E9%9D%A2%E7%89%B9%E5%BE%81/">
+                        <span class="hidden-mobile">利用pandas_ta自动提取技术面特征</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments" lazyload>
+                
+                  
+                
+                
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appKey":"ODqlMdJWwrMxHFHzfz3pMvBS","path":"window.location.pathname","placeholder":"说点什么","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":null,"emojiCDN":null,"emojiMaps":null,"enableQQ":false,"appid":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appkey":"ODqlMdJWwrMxHFHzfz3pMvBS"},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          Fluid.plugins.initFancyBox('#valine .vcontent img:not(.vemoji)');
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+  </main>
+
+  <footer class="text-center mt-5 py-3">
+  <div class="footer-content">
+     <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+  </div>
+  
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- LeanCloud 统计PV -->
+        <span id="leancloud-site-pv-container" style="display: none">
+            总访问量 
+            <span id="leancloud-site-pv"></span>
+             次
+          </span>
+      
+      
+        <!-- LeanCloud 统计UV -->
+        <span id="leancloud-site-uv-container" style="display: none">
+            总访客数 
+            <span id="leancloud-site-uv"></span>
+             人
+          </span>
+      
+
+    
+  </div>
+
+
+  
+  <!-- 备案信息 -->
+  <div class="beian">
+    <span>
+      <a href="http://beian.miit.gov.cn/" target="_blank" rel="nofollow noopener">
+        粤ICP备19097965号
+      </a>
+    </span>
+    
+  </div>
+
+
+  
+</footer>
+
+
+  <!-- SCRIPTS -->
+  
+  <script  src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" ></script>
+<script  src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+<!-- Plugins -->
+
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  
+    <script  src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js" ></script>
+  
+  
+    <script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js" ></script>
+  
+
+
+
+
+  <script defer src="/js/leancloud.js" ></script>
+
+
+
+  <script  src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var title = document.getElementById('subtitle').title;
+      
+        typing(title);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <!-- Baidu Analytics -->
+    <script defer>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?e2bacb4062644434b87a03658392592e";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+  
+
+  
+
+  
+    <!-- Google gtag.js -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YSYVRNN9T"></script>
+    <script defer>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-7YSYVRNN9T');
+    </script>
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+<!-- 主题的启动项 保持在最底部 -->
+<script  src="/js/boot.js" ></script>
+
+
+</body>
+</html>
