@@ -15,8 +15,8 @@ categories:
 
 安装`pandas-ta`本身非常简单，直接pip一下就可以，如果想用ta-lib的一些特性，则还需要安装`ta-lib`本身
 - Anaconda：使用Anaconda集成环境，可直接`conda install -c conda-forge ta-lib`
-- Windows: 直接在https://www.lfd.uci.edu/~gohlke/pythonlibs/#ta-lib中下载离线包安装即可
-- Linux: 需要编译安装C++原始环境库(http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz)，然后pip安装`pip install TA-Lib`
+- Windows: 直接在https://www.lfd.uci.edu/~gohlke/pythonlibs/#ta-lib 中下载离线包安装即可
+- Linux: 需要编译安装C++原始环境库(http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz) ，然后pip安装`pip install TA-Lib`
 
 pandas-ta提供的主要函数有：
 - 蜡烛图形态：Candles ，基于K线图的形态识别，如三只乌鸦等
