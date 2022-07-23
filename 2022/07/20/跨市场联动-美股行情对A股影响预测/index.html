@@ -1,0 +1,847 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.jpg">
+  <link rel="icon" href="/img/favicon.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Keyun Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="随着A股北上资金的不断涌入，跨市场联动性也愈发显著，在内循环的同时也时刻受着外部重要市场行情波动的影响，美股作为全球市场，一丝风吹草动都对全球金融造成剧烈波动。本文将探索美股行情中的技术面因子对当天A股市场的行业影响，使用机器学习技术预测行业涨跌情况，并同基准沪深300指数作对比以说明实际效果。   美股因子数据生成美股标的选择美股市场总有有高达数万个股票、ETF标的，我们这里选择那些具有代表性">
+<meta property="og:type" content="article">
+<meta property="og:title" content="跨市场联动:基于美股隔日行情预测A股行业涨跌">
+<meta property="og:url" content="https://keyunluo.github.io/2022/07/20/%E8%B7%A8%E5%B8%82%E5%9C%BA%E8%81%94%E5%8A%A8-%E7%BE%8E%E8%82%A1%E8%A1%8C%E6%83%85%E5%AF%B9A%E8%82%A1%E5%BD%B1%E5%93%8D%E9%A2%84%E6%B5%8B/index.html">
+<meta property="og:site_name" content="流光">
+<meta property="og:description" content="随着A股北上资金的不断涌入，跨市场联动性也愈发显著，在内循环的同时也时刻受着外部重要市场行情波动的影响，美股作为全球市场，一丝风吹草动都对全球金融造成剧烈波动。本文将探索美股行情中的技术面因子对当天A股市场的行业影响，使用机器学习技术预测行业涨跌情况，并同基准沪深300指数作对比以说明实际效果。   美股因子数据生成美股标的选择美股市场总有有高达数万个股票、ETF标的，我们这里选择那些具有代表性">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://keyunluo.github.io/img/trade_label.png">
+<meta property="og:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+<meta property="article:published_time" content="2022-07-20T04:00:00.000Z">
+<meta property="article:modified_time" content="2022-07-23T11:40:05.937Z">
+<meta property="article:author" content="Keyun Luo">
+<meta property="article:tag" content="pandas_ta">
+<meta property="article:tag" content="技术分析">
+<meta property="article:tag" content="跨市场联动">
+<meta property="article:tag" content="美股">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://keyunluo.github.io/img/trade_label.png">
+  
+  
+  <title>跨市场联动:基于美股隔日行情预测A股行业涨跌 - 流光</title>
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/github-gist.min.css" />
+    
+  
+
+  
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    var CONFIG = {"hostname":"keyunluo.github.io","root":"/","version":"1.8.14","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"right","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"copy_btn":true,"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"baidu":"e2bacb4062644434b87a03658392592e","google":null,"gtag":"G-7YSYVRNN9T","tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","app_key":"ODqlMdJWwrMxHFHzfz3pMvBS","server_url":"https://nqndu9io.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+
+<body>
+  <header style="height: 30vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>博客</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner" id="banner" parallax=true
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="page-header text-center fade-in-up">
+            <span class="h2" id="subtitle" title="跨市场联动:基于美股隔日行情预测A股行业涨跌">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2022-07-20 12:00" pubdate>
+        2022年7月20日 中午
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      30k 字
+    </span>
+  
+
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      246 分钟
+    </span>
+  
+
+  
+  
+    
+      <!-- LeanCloud 统计文章PV -->
+      <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+        <i class="iconfont icon-eye" aria-hidden="true"></i>
+        <span id="leancloud-page-views"></span> 次
+      </span>
+    
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">跨市场联动:基于美股隔日行情预测A股行业涨跌</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2022年7月23日 晚上
+                
+              </p>
+            
+            <div class="markdown-body">
+              <blockquote>
+<p>随着A股北上资金的不断涌入，跨市场联动性也愈发显著，在内循环的同时也时刻受着外部重要市场行情波动的影响，美股作为全球市场，一丝风吹草动都对全球金融造成剧烈波动。本文将探索美股行情中的技术面因子对当天A股市场的行业影响，使用机器学习技术预测行业涨跌情况，并同基准沪深300指数作对比以说明实际效果。 </p>
+</blockquote>
+<h2 id="美股因子数据生成"><a href="#美股因子数据生成" class="headerlink" title="美股因子数据生成"></a>美股因子数据生成</h2><h3 id="美股标的选择"><a href="#美股标的选择" class="headerlink" title="美股标的选择"></a>美股标的选择</h3><p>美股市场总有有高达数万个股票、ETF标的，我们这里选择那些具有代表性的股票和ETF作为参考标的。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://www.slickcharts.com/dowjones">道琼斯工业平均指数</a>成分股：是在美国证券交易所上市的30家著名公司的价格加权衡量股票市场指数。</li>
+<li><a target="_blank" rel="noopener" href="https://www.slickcharts.com/sp500">标普500指数</a>成分股：美国上市公司总市值Top500，其成分股由400种工业股票、20种运输业股票、40种公用事业股票和40种金融业股票组成。</li>
+<li><a target="_blank" rel="noopener" href="https://www.slickcharts.com/nasdaq100">纳斯达克100指数</a>成分股：是美国纳斯达克100支最大型本地及国际非金融类上市公司组成的股市指数，以市值作基础，并以一些规则平衡较大市值股份造成的影响。</li>
+<li>大盘和行业指数ETF：<ul>
+<li>大宗商品：白银(SLV)、黄金(GLD)、金矿(GDX)、天然气(UNG)、太阳能(TAN)、能源ETF(XLE)、商品指数(DBC)、油矿开采(XOP)、原油基金(USO)、油气服务(OIH)</li>
+<li>大盘指数: 标普500(SPY)、道琼斯指数(DIA)、纳斯达克100(QQQ)、罗素2000(IWM)、恐慌指数(UVXY)、恐慌指数(VIXY)、价值股(VTV)、罗素1000成长(IWF) 中国大盘股(FXI)、中国海外互联网(KWEB)、日本ETF(EWJ)、台湾(EWT)、韩国(EWY)、澳大利亚(EWA)、香港(EWH)、沪深300(ASHR)、欧洲(VGK)、英国(EWU)、德国(EWG)、欧盟(EZU)、巴西(EWZ)</li>
+<li>债券：20年国债(TLT)、全债(AGG)、市政债(MUB)、通胀债(TIP)、债券指数(HYG)、短期国债(SHV)、公司债(LQD)、高价值债(JNK)、短期公司债(VCSH)、中期公司债(VCIT)、1-3年国债(SHY)、新兴市场美元债(EMB)</li>
+<li>行业：金融(XLF)、生物(XBI)、半导体(SMH)、非必须消费品(XLY)、高科技(XLK)、医疗保健(XLV)、日常消费(XLP)、公共事业(XLU)、工业指数(XLI)、房地产(IYR)、不动产(VNQ)、原料(XLB)、区域银行(KRE)、信息技术(VGT)、航空业ETF(JETS)、农产品(DBA)、零售(XRT)、金属矿业(XME)、房屋建筑(XHB)</li>
+<li>汇率: 美元(UUP) </li>
+</ul>
+</li>
+<li>中概股代表股：阿里巴巴(BABA)、台积电(TSM)、京东(JD)、拼多多(PDD)、网易(NTES)、百度(BIDU)、理想汽车(LI)、蔚来(NIO)、小鹏汽车(XPEV)、百胜中国(YUMC)、百济神州(BGNE)、贝壳(BEKE)、携程(TCOM)、陆金所(LU)、哔哩哗啦(BILI)、腾讯音乐(TME)、富途(FUTU)、万国数据(GDS)、微博(WB)、新东方(EDU)、爱奇艺(IQ)</li>
+</ul>
+<p>代码：爬取指数成分股</p>
+<figure class="highlight python"><table><tr><td class="gutter"><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></div></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> re, requests<br><br><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_us_market_ticker</span>():</span><br>    headers = &#123;<br>        <span class="hljs-string">&#x27;authority&#x27;</span>: <span class="hljs-string">&#x27;www.slickcharts.com&#x27;</span>,<br>        <span class="hljs-string">&#x27;cache-control&#x27;</span>: <span class="hljs-string">&#x27;max-age=0&#x27;</span>,<br>        <span class="hljs-string">&#x27;upgrade-insecure-requests&#x27;</span>: <span class="hljs-string">&#x27;1&#x27;</span>,<br>        <span class="hljs-string">&#x27;user-agent&#x27;</span>: <span class="hljs-string">&#x27;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36&#x27;</span>,<br>        <span class="hljs-string">&#x27;accept&#x27;</span>: <span class="hljs-string">&#x27;text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9&#x27;</span>,<br>        <span class="hljs-string">&#x27;sec-fetch-site&#x27;</span>: <span class="hljs-string">&#x27;none&#x27;</span>,<br>        <span class="hljs-string">&#x27;sec-fetch-mode&#x27;</span>: <span class="hljs-string">&#x27;navigate&#x27;</span>,<br>        <span class="hljs-string">&#x27;sec-fetch-user&#x27;</span>: <span class="hljs-string">&#x27;?1&#x27;</span>,<br>        <span class="hljs-string">&#x27;sec-fetch-dest&#x27;</span>: <span class="hljs-string">&#x27;document&#x27;</span>,<br>        <span class="hljs-string">&#x27;referer&#x27;</span>: <span class="hljs-string">&#x27;https://www.google.com/&#x27;</span>,<br>        <span class="hljs-string">&#x27;accept-language&#x27;</span>: <span class="hljs-string">&#x27;zh-CN,zh;q=0.9,en;q=0.8,en-US;q=0.7&#x27;</span><br>    &#125;<br><br>    sp500= requests.get(<span class="hljs-string">&#x27;https://www.slickcharts.com/sp500&#x27;</span>, headers=headers)<br>    nasdaq100 = requests.get(<span class="hljs-string">&#x27;https://www.slickcharts.com/nasdaq100&#x27;</span>, headers=headers)<br>    dowjones30 = requests.get(<span class="hljs-string">&#x27;https://www.slickcharts.com/dowjones&#x27;</span>, headers=headers)<br>    <br>    component_ticker = <span class="hljs-built_in">set</span>(re.findall(<span class="hljs-string">r&quot;/symbol/([A-Za-z\.]+)&quot;</span>, sp500.text)) | <span class="hljs-built_in">set</span>(re.findall(<span class="hljs-string">r&quot;/symbol/([A-Za-z\.]+)&quot;</span>, nasdaq100.text)) | <span class="hljs-built_in">set</span>(re.findall(<span class="hljs-string">r&quot;/symbol/([A-Za-z\.]+)&quot;</span>, dowjones30.text))<br>    <br>    etf_ticker = <span class="hljs-built_in">set</span>([<span class="hljs-string">&#x27;SLV&#x27;</span>, <span class="hljs-string">&#x27;GLD&#x27;</span>, <span class="hljs-string">&#x27;GDX&#x27;</span>, <span class="hljs-string">&#x27;UNG&#x27;</span>, <span class="hljs-string">&#x27;TAN&#x27;</span>, <span class="hljs-string">&#x27;XLE&#x27;</span>, <span class="hljs-string">&#x27;DBC&#x27;</span>, <span class="hljs-string">&#x27;XOP&#x27;</span>, <span class="hljs-string">&#x27;USO&#x27;</span>, <span class="hljs-string">&#x27;OIH&#x27;</span>, <span class="hljs-string">&#x27;SPY&#x27;</span>, <span class="hljs-string">&#x27;DIA&#x27;</span>, <span class="hljs-string">&#x27;QQQ&#x27;</span>, <span class="hljs-string">&#x27;IWM&#x27;</span>, <span class="hljs-string">&#x27;UVXY&#x27;</span>, <span class="hljs-string">&#x27;VIXY&#x27;</span>, <span class="hljs-string">&#x27;VTV&#x27;</span>, <span class="hljs-string">&#x27;IWF&#x27;</span>, <span class="hljs-string">&#x27;FXI&#x27;</span>, <span class="hljs-string">&#x27;KWEB&#x27;</span>, <span class="hljs-string">&#x27;EWJ&#x27;</span>, <span class="hljs-string">&#x27;EWT&#x27;</span>, <span class="hljs-string">&#x27;EWY&#x27;</span>, <span class="hljs-string">&#x27;EWA&#x27;</span>, <span class="hljs-string">&#x27;EWH&#x27;</span>, <span class="hljs-string">&#x27;ASHR&#x27;</span>, <span class="hljs-string">&#x27;VGK&#x27;</span>, <span class="hljs-string">&#x27;EWU&#x27;</span>, <span class="hljs-string">&#x27;EWG&#x27;</span>, <span class="hljs-string">&#x27;EZU&#x27;</span>, <span class="hljs-string">&#x27;EWZ&#x27;</span>, <span class="hljs-string">&#x27;TLT&#x27;</span>, <span class="hljs-string">&#x27;AGG&#x27;</span>, <span class="hljs-string">&#x27;MUB&#x27;</span>, <span class="hljs-string">&#x27;TIP&#x27;</span>, <span class="hljs-string">&#x27;HYG&#x27;</span>, <span class="hljs-string">&#x27;SHV&#x27;</span>, <span class="hljs-string">&#x27;LQD&#x27;</span>, <span class="hljs-string">&#x27;JNK&#x27;</span>, <span class="hljs-string">&#x27;VCSH&#x27;</span>, <span class="hljs-string">&#x27;VCIT&#x27;</span>, <span class="hljs-string">&#x27;SHY&#x27;</span>, <span class="hljs-string">&#x27;EMB&#x27;</span>, <span class="hljs-string">&#x27;XLF&#x27;</span>, <span class="hljs-string">&#x27;XBI&#x27;</span>, <span class="hljs-string">&#x27;SMH&#x27;</span>, <span class="hljs-string">&#x27;XLY&#x27;</span>, <span class="hljs-string">&#x27;XLK&#x27;</span>, <span class="hljs-string">&#x27;XLV&#x27;</span>, <span class="hljs-string">&#x27;XLP&#x27;</span>, <span class="hljs-string">&#x27;XLU&#x27;</span>, <span class="hljs-string">&#x27;XLI&#x27;</span>, <span class="hljs-string">&#x27;IYR&#x27;</span>, <span class="hljs-string">&#x27;VNQ&#x27;</span>, <span class="hljs-string">&#x27;XLB&#x27;</span>, <span class="hljs-string">&#x27;KRE&#x27;</span>, <span class="hljs-string">&#x27;VGT&#x27;</span>, <span class="hljs-string">&#x27;JETS&#x27;</span>, <span class="hljs-string">&#x27;DBA&#x27;</span>, <span class="hljs-string">&#x27;XRT&#x27;</span>, <span class="hljs-string">&#x27;XME&#x27;</span>, <span class="hljs-string">&#x27;XHB&#x27;</span>, <span class="hljs-string">&#x27;UUP&#x27;</span>])<br>    <br>    cn_ticker = <span class="hljs-built_in">set</span>([<span class="hljs-string">&#x27;BABA&#x27;</span>, <span class="hljs-string">&#x27;TSM&#x27;</span>, <span class="hljs-string">&#x27;JD&#x27;</span>, <span class="hljs-string">&#x27;PDD&#x27;</span>, <span class="hljs-string">&#x27;NTES&#x27;</span>, <span class="hljs-string">&#x27;BIDU&#x27;</span>, <span class="hljs-string">&#x27;LI&#x27;</span>, <span class="hljs-string">&#x27;NIO&#x27;</span>, <span class="hljs-string">&#x27;XPEV&#x27;</span>, <span class="hljs-string">&#x27;YUMC&#x27;</span>, <span class="hljs-string">&#x27;BGNE&#x27;</span>, <span class="hljs-string">&#x27;BEKE&#x27;</span>, <span class="hljs-string">&#x27;TCOM&#x27;</span>, <span class="hljs-string">&#x27;LU&#x27;</span>, <span class="hljs-string">&#x27;BILI&#x27;</span>, <span class="hljs-string">&#x27;TME&#x27;</span>, <span class="hljs-string">&#x27;FUTU&#x27;</span>, <span class="hljs-string">&#x27;GDS&#x27;</span>, <span class="hljs-string">&#x27;WB&#x27;</span>, <span class="hljs-string">&#x27;EDU&#x27;</span>, <span class="hljs-string">&#x27;IQ&#x27;</span>])<br>    <br>    ticker = component_ticker | etf_ticker | cn_ticker<br>    <br>    <span class="hljs-keyword">return</span> <span class="hljs-built_in">list</span>(ticker)<br></code></pre></td></tr></table></figure>
+
+<p>可以获得约600个待跟踪标的。</p>
+<h3 id="技术因子生成"><a href="#技术因子生成" class="headerlink" title="技术因子生成"></a>技术因子生成</h3><p>生成日线级别的技术因子，基于上篇介绍的pandas_ta，这里直接给出相关代码，需要注意的是要对因子进行<code>标准化</code>，限制取值范围为<code>[-10, 10]</code>，避免极端值对后续模型的影响：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 技术指标: 日间</span><br><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">make_tech_feature_daily</span>(<span class="hljs-params">dayline_df, index_col=<span class="hljs-string">&#x27;trade_day&#x27;</span></span>):</span><br>    <span class="hljs-comment"># 特征</span><br>    <span class="hljs-keyword">if</span> dayline_df.index.name != index_col:<br>        dayline_df = dayline_df.set_index(index_col)<br>    df_len = <span class="hljs-built_in">len</span>(dayline_df)<br>    <span class="hljs-keyword">if</span> df_len &lt; <span class="hljs-number">2</span>:<br>        feature_df = pd.DataFrame(index=dayline_df.index, columns = [<span class="hljs-string">&#x27;ADX_2&#x27;</span>, <span class="hljs-string">&#x27;DMP_2&#x27;</span>, <span class="hljs-string">&#x27;DMN_2&#x27;</span>, <span class="hljs-string">&#x27;ADX_5&#x27;</span>, <span class="hljs-string">&#x27;DMP_5&#x27;</span>, <span class="hljs-string">&#x27;DMN_5&#x27;</span>, <span class="hljs-string">&#x27;ADX_22&#x27;</span>,<br>       <span class="hljs-string">&#x27;DMP_22&#x27;</span>, <span class="hljs-string">&#x27;DMN_22&#x27;</span>, <span class="hljs-string">&#x27;CCI_2&#x27;</span>, <span class="hljs-string">&#x27;CCI_5&#x27;</span>, <span class="hljs-string">&#x27;CCI_22&#x27;</span>, <span class="hljs-string">&#x27;CMO_2&#x27;</span>, <span class="hljs-string">&#x27;CMO_5&#x27;</span>,<br>       <span class="hljs-string">&#x27;CMO_22&#x27;</span>, <span class="hljs-string">&#x27;MACD_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;MACDh_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;MACDs_12_26_9&#x27;</span>,<br>       <span class="hljs-string">&#x27;MACD_6_30_9&#x27;</span>, <span class="hljs-string">&#x27;MACDh_6_30_9&#x27;</span>, <span class="hljs-string">&#x27;MACDs_6_30_9&#x27;</span>, <span class="hljs-string">&#x27;MACD_24_52_9&#x27;</span>,<br>       <span class="hljs-string">&#x27;MACDh_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;MACDs_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PPO_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PPOh_12_26_9&#x27;</span>,<br>       <span class="hljs-string">&#x27;PPOs_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PPO_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PPOh_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PPOs_24_52_9&#x27;</span>,<br>       <span class="hljs-string">&#x27;PVO_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PVOh_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PVOs_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PVO_24_52_9&#x27;</span>,<br>       <span class="hljs-string">&#x27;PVOh_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PVOs_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;MFI_2&#x27;</span>, <span class="hljs-string">&#x27;MFI_5&#x27;</span>, <span class="hljs-string">&#x27;RSI_2&#x27;</span>, <span class="hljs-string">&#x27;RSI_5&#x27;</span>,<br>       <span class="hljs-string">&#x27;RSI_14&#x27;</span>, <span class="hljs-string">&#x27;UO_5_15_30&#x27;</span>, <span class="hljs-string">&#x27;WILLR_3&#x27;</span>, <span class="hljs-string">&#x27;WILLR_5&#x27;</span>, <span class="hljs-string">&#x27;WILLR_10&#x27;</span>, <span class="hljs-string">&#x27;WILLR_20&#x27;</span>, <span class="hljs-string">&#x27;K_9_3&#x27;</span>,<br>       <span class="hljs-string">&#x27;D_9_3&#x27;</span>, <span class="hljs-string">&#x27;J_9_3&#x27;</span>, <span class="hljs-string">&#x27;K_19_3&#x27;</span>, <span class="hljs-string">&#x27;D_19_3&#x27;</span>, <span class="hljs-string">&#x27;J_19_3&#x27;</span>, <span class="hljs-string">&#x27;NATR_3&#x27;</span>, <span class="hljs-string">&#x27;NATR_10&#x27;</span>, <span class="hljs-string">&#x27;LOGRET_10&#x27;</span>, <br>       <span class="hljs-string">&#x27;PCTRET_1&#x27;</span>, <span class="hljs-string">&#x27;PCTRET_2&#x27;</span>, <span class="hljs-string">&#x27;PCTRET_3&#x27;</span>, <span class="hljs-string">&#x27;PCTRET_4&#x27;</span>, <span class="hljs-string">&#x27;PCTRET_5&#x27;</span>, <span class="hljs-string">&#x27;ZS_5&#x27;</span>,<br>       <span class="hljs-string">&#x27;ZS_14&#x27;</span>, <span class="hljs-string">&#x27;RVI_5&#x27;</span>, <span class="hljs-string">&#x27;RVI_14&#x27;</span>, <span class="hljs-string">&#x27;rolling_money_3&#x27;</span>, <span class="hljs-string">&#x27;rolling_money_5&#x27;</span>, <span class="hljs-string">&#x27;rolling_money_10&#x27;</span>,<br>       <span class="hljs-string">&#x27;rolling_volume_3&#x27;</span>, <span class="hljs-string">&#x27;rolling_volume_5&#x27;</span>, <span class="hljs-string">&#x27;rolling_volume_10&#x27;</span>, <span class="hljs-string">&#x27;pct_volatility&#x27;</span>,<br>       <span class="hljs-string">&#x27;rolling_pct_volatility_3&#x27;</span>, <span class="hljs-string">&#x27;rolling_pct_volatility_5&#x27;</span>,<br>       <span class="hljs-string">&#x27;rolling_pct_volatility_10&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>        feature_df.columns = [<span class="hljs-string">&#x27;daily_%s&#x27;</span> % i <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> feature_df.columns]<br><br>        feature_df[<span class="hljs-string">&#x27;code&#x27;</span>] = dayline_df[<span class="hljs-string">&#x27;code&#x27;</span>]<br>        feature_df = feature_df.reset_index().set_index(<span class="hljs-string">&#x27;code&#x27;</span>).reset_index()<br>        <span class="hljs-keyword">return</span> feature_df<br>    <br>    <span class="hljs-comment">## 平均趋向指数</span><br>    <span class="hljs-keyword">try</span>:<br>        adx_2 = (dayline_df.ta.adx(length=<span class="hljs-number">2</span>) / <span class="hljs-number">100</span>).fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> adx_2.columns.tolist() == [<span class="hljs-string">&#x27;ADX_2&#x27;</span>, <span class="hljs-string">&#x27;DMP_2&#x27;</span>, <span class="hljs-string">&#x27;DMN_2&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        adx_2 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;ADX_2&#x27;</span>, <span class="hljs-string">&#x27;DMP_2&#x27;</span>, <span class="hljs-string">&#x27;DMN_2&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        adx_5 = (dayline_df.ta.adx(length=<span class="hljs-number">5</span>) / <span class="hljs-number">100</span>).fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> adx_5.columns.tolist() == [<span class="hljs-string">&#x27;ADX_5&#x27;</span>, <span class="hljs-string">&#x27;DMP_5&#x27;</span>, <span class="hljs-string">&#x27;DMN_5&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        adx_5 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;ADX_5&#x27;</span>, <span class="hljs-string">&#x27;DMP_5&#x27;</span>, <span class="hljs-string">&#x27;DMN_5&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        adx_22 = (dayline_df.ta.adx(length=<span class="hljs-number">22</span>) / <span class="hljs-number">100</span>).fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> adx_22.columns.tolist() == [<span class="hljs-string">&#x27;ADX_22&#x27;</span>, <span class="hljs-string">&#x27;DMP_22&#x27;</span>, <span class="hljs-string">&#x27;DMN_22&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        adx_22 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;ADX_22&#x27;</span>, <span class="hljs-string">&#x27;DMP_22&#x27;</span>, <span class="hljs-string">&#x27;DMN_22&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <br>    <span class="hljs-comment">## 顺势指标</span><br>    <span class="hljs-keyword">try</span>:<br>        cci_2 = (dayline_df.ta.cci(length=<span class="hljs-number">2</span>) / <span class="hljs-number">1000</span>).to_frame().fillna(<span class="hljs-number">0.0</span>).rename(columns=&#123;<span class="hljs-string">&quot;CCI_2_0.015&quot;</span>: <span class="hljs-string">&quot;CCI_2&quot;</span>&#125;)<br>        <span class="hljs-keyword">assert</span> cci_2.columns.tolist() == [<span class="hljs-string">&#x27;CCI_2&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        cci_2 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;CCI_2&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        cci_5 = (dayline_df.ta.cci(length=<span class="hljs-number">5</span>) / <span class="hljs-number">1000</span>).to_frame().fillna(<span class="hljs-number">0.0</span>).rename(columns=&#123;<span class="hljs-string">&quot;CCI_5_0.015&quot;</span>: <span class="hljs-string">&quot;CCI_5&quot;</span>&#125;)<br>        <span class="hljs-keyword">assert</span> cci_5.columns.tolist() == [<span class="hljs-string">&#x27;CCI_5&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        cci_5 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;CCI_5&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        cci_22 = (dayline_df.ta.cci(length=<span class="hljs-number">22</span>) / <span class="hljs-number">1000</span>).to_frame().fillna(<span class="hljs-number">0.0</span>).rename(columns=&#123;<span class="hljs-string">&quot;CCI_22_0.015&quot;</span>: <span class="hljs-string">&quot;CCI_22&quot;</span>&#125;)<br>        <span class="hljs-keyword">assert</span> cci_22.columns.tolist() == [<span class="hljs-string">&#x27;CCI_22&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        cci_22 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;CCI_22&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>        <br>    <span class="hljs-comment">## 钱德动量摆动指标</span><br>    <span class="hljs-keyword">try</span>:<br>        cmo_2 = (dayline_df.ta.cmo(length=<span class="hljs-number">2</span>) / <span class="hljs-number">100</span>).to_frame().fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> cmo_2.columns.tolist() == [<span class="hljs-string">&#x27;CMO_2&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        cmo_2 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;CMO_2&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        cmo_5 = (dayline_df.ta.cmo(length=<span class="hljs-number">5</span>) / <span class="hljs-number">100</span>).to_frame().fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> cmo_5.columns.tolist() == [<span class="hljs-string">&#x27;CMO_5&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        cmo_5 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;CMO_5&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        cmo_22 = (dayline_df.ta.cmo(length=<span class="hljs-number">22</span>) / <span class="hljs-number">100</span>).to_frame().fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> cmo_22.columns.tolist() == [<span class="hljs-string">&#x27;CMO_22&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        cmo_22 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;CMO_22&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>        <br>    <span class="hljs-comment">## 指数平滑移动平均线 MACD</span><br>    <span class="hljs-keyword">try</span>:<br>        macd_12_26_9 = dayline_df.ta.macd(<span class="hljs-number">12</span>, <span class="hljs-number">26</span>, <span class="hljs-number">9</span>) <br>        <span class="hljs-keyword">for</span> k <span class="hljs-keyword">in</span> macd_12_26_9:<br>            macd_12_26_9[k] = macd_12_26_9[k].div(dayline_df[<span class="hljs-string">&#x27;close&#x27;</span>].values) * <span class="hljs-number">10</span><br>        macd_12_26_9 = macd_12_26_9.fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span>  macd_12_26_9.columns.tolist() == [<span class="hljs-string">&#x27;MACD_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;MACDh_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;MACDs_12_26_9&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        macd_12_26_9 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;MACD_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;MACDh_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;MACDs_12_26_9&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>        <br>    <span class="hljs-keyword">try</span>:<br>        macd_6_30_9 = dayline_df.ta.macd(<span class="hljs-number">6</span>, <span class="hljs-number">30</span>, <span class="hljs-number">9</span>) <br>        <span class="hljs-keyword">for</span> k <span class="hljs-keyword">in</span> macd_6_30_9:<br>            macd_6_30_9[k] = macd_6_30_9[k].div(dayline_df[<span class="hljs-string">&#x27;close&#x27;</span>].values) * <span class="hljs-number">10</span><br>        macd_6_30_9 = macd_6_30_9.fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span>  macd_6_30_9.columns.tolist() == [<span class="hljs-string">&#x27;MACD_6_30_9&#x27;</span>, <span class="hljs-string">&#x27;MACDh_6_30_9&#x27;</span>, <span class="hljs-string">&#x27;MACDs_6_30_9&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        macd_6_30_9 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;MACD_6_30_9&#x27;</span>, <span class="hljs-string">&#x27;MACDh_6_30_9&#x27;</span>, <span class="hljs-string">&#x27;MACDs_6_30_9&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <br>    <span class="hljs-keyword">try</span>:<br>        macd_24_52_9 = dayline_df.ta.macd(<span class="hljs-number">24</span>, <span class="hljs-number">52</span>, <span class="hljs-number">9</span>) <br>        <span class="hljs-keyword">for</span> k <span class="hljs-keyword">in</span> macd_24_52_9:<br>            macd_24_52_9[k] = macd_24_52_9[k].div(dayline_df[<span class="hljs-string">&#x27;close&#x27;</span>].values) * <span class="hljs-number">10</span><br>        macd_24_52_9 = macd_24_52_9.fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span>  macd_24_52_9.columns.tolist() == [<span class="hljs-string">&#x27;MACD_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;MACDh_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;MACDs_24_52_9&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        macd_24_52_9 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;MACD_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;MACDh_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;MACDs_24_52_9&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>        <br>    <span class="hljs-comment">## 指数平滑移动平均线 PPO</span><br>    <span class="hljs-keyword">try</span>:<br>        ppo_12_26_9 = (dayline_df.ta.ppo(<span class="hljs-number">12</span>, <span class="hljs-number">26</span>, <span class="hljs-number">9</span>) / <span class="hljs-number">10</span>).fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> ppo_12_26_9.columns.tolist() == [<span class="hljs-string">&#x27;PPO_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PPOh_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PPOs_12_26_9&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        ppo_12_26_9 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;PPO_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PPOh_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PPOs_12_26_9&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        ppo_24_52_9 = (dayline_df.ta.ppo(<span class="hljs-number">24</span>, <span class="hljs-number">52</span>, <span class="hljs-number">9</span>) / <span class="hljs-number">10</span>).fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> ppo_24_52_9.columns.tolist() == [<span class="hljs-string">&#x27;PPO_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PPOh_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PPOs_24_52_9&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        ppo_24_52_9 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;PPO_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PPOh_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PPOs_24_52_9&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>        <br>    <span class="hljs-keyword">try</span>:<br>        pvo_12_26_9 = (dayline_df.ta.pvo(<span class="hljs-number">12</span>, <span class="hljs-number">26</span>, <span class="hljs-number">9</span>) / <span class="hljs-number">100</span>).fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> pvo_12_26_9.columns.tolist() == [<span class="hljs-string">&#x27;PVO_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PVOh_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PVOs_12_26_9&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        pvo_12_26_9 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;PVO_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PVOh_12_26_9&#x27;</span>, <span class="hljs-string">&#x27;PVOs_12_26_9&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        pvo_24_52_9 = (dayline_df.ta.pvo(<span class="hljs-number">24</span>, <span class="hljs-number">52</span>, <span class="hljs-number">9</span>) / <span class="hljs-number">100</span>).fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> pvo_24_52_9.columns.tolist() == [<span class="hljs-string">&#x27;PVO_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PVOh_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PVOs_24_52_9&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        pvo_24_52_9 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;PVO_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PVOh_24_52_9&#x27;</span>, <span class="hljs-string">&#x27;PVOs_24_52_9&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>        <br>    <span class="hljs-keyword">try</span>:<br>        mfi_2 = (dayline_df.ta.mfi(length=<span class="hljs-number">2</span>) / <span class="hljs-number">100</span>).to_frame().fillna(<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> mfi_2.columns.tolist() == [<span class="hljs-string">&#x27;MFI_2&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        mfi_2 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;MFI_2&#x27;</span>]).fillna(<span class="hljs-number">0.5</span>)<br>    <span class="hljs-keyword">try</span>:<br>        mfi_5 = (dayline_df.ta.mfi(length=<span class="hljs-number">5</span>) / <span class="hljs-number">100</span>).to_frame().fillna(<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> mfi_5.columns.tolist() == [<span class="hljs-string">&#x27;MFI_5&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        mfi_5 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;MFI_5&#x27;</span>]).fillna(<span class="hljs-number">0.5</span>)    <br>    <br>    <span class="hljs-keyword">try</span>:<br>        rsi_2 = (dayline_df.ta.rsi(length=<span class="hljs-number">2</span>) / <span class="hljs-number">100</span>).to_frame().fillna(<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> rsi_2.columns.tolist() == [<span class="hljs-string">&#x27;RSI_2&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        rsi_2 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;RSI_2&#x27;</span>]).fillna(<span class="hljs-number">0.5</span>) <br>    <span class="hljs-keyword">try</span>:<br>        rsi_5 = (dayline_df.ta.rsi(length=<span class="hljs-number">5</span>) / <span class="hljs-number">100</span>).to_frame().fillna(<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> rsi_5.columns.tolist() == [<span class="hljs-string">&#x27;RSI_5&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        rsi_5 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;RSI_5&#x27;</span>]).fillna(<span class="hljs-number">0.5</span>) <br>    <span class="hljs-keyword">try</span>:<br>        rsi_14 = (dayline_df.ta.rsi(length=<span class="hljs-number">14</span>) / <span class="hljs-number">100</span>).to_frame().fillna(<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> rsi_14.columns.tolist() == [<span class="hljs-string">&#x27;RSI_14&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        rsi_14 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;RSI_14&#x27;</span>]).fillna(<span class="hljs-number">0.5</span>) <br>   <br>    <span class="hljs-keyword">try</span>:<br>        uo_5_15_30 = (dayline_df.ta.uo(<span class="hljs-number">5</span>, <span class="hljs-number">15</span>, <span class="hljs-number">30</span>) / <span class="hljs-number">100</span>).to_frame().fillna(<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> uo_5_15_30.columns.tolist() == [<span class="hljs-string">&#x27;UO_5_15_30&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        uo_5_15_30 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;UO_5_15_30&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>        <br>    <span class="hljs-keyword">try</span>:<br>        willr_3 = (dayline_df.ta.willr(length=<span class="hljs-number">3</span>) / <span class="hljs-number">100</span>).to_frame().fillna(-<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> willr_3.columns.tolist() == [<span class="hljs-string">&#x27;WILLR_3&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        willr_3 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;WILLR_3&#x27;</span>]).fillna(-<span class="hljs-number">0.5</span>) <br>    <span class="hljs-keyword">try</span>:<br>        willr_5 = (dayline_df.ta.willr(length=<span class="hljs-number">5</span>) / <span class="hljs-number">100</span>).to_frame().fillna(-<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> willr_5.columns.tolist() == [<span class="hljs-string">&#x27;WILLR_5&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        willr_5 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;WILLR_5&#x27;</span>]).fillna(-<span class="hljs-number">0.5</span>) <br>    <span class="hljs-keyword">try</span>:<br>        willr_10 = (dayline_df.ta.willr(length=<span class="hljs-number">10</span>) / <span class="hljs-number">100</span>).to_frame().fillna(-<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> willr_10.columns.tolist() == [<span class="hljs-string">&#x27;WILLR_10&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        willr_10 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;WILLR_10&#x27;</span>]).fillna(-<span class="hljs-number">0.5</span>) <br>    <span class="hljs-keyword">try</span>:<br>        willr_20 = (dayline_df.ta.willr(length=<span class="hljs-number">20</span>) / <span class="hljs-number">100</span>).to_frame().fillna(-<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> willr_20.columns.tolist() == [<span class="hljs-string">&#x27;WILLR_20&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        willr_20 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;WILLR_20&#x27;</span>]).fillna(-<span class="hljs-number">0.5</span>) <br>        <br>    <span class="hljs-keyword">try</span>:<br>        kdj_9_3 = (dayline_df.ta.kdj(<span class="hljs-number">9</span>, <span class="hljs-number">3</span>) / <span class="hljs-number">100</span>).fillna(<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> kdj_9_3.columns.tolist() == [<span class="hljs-string">&#x27;K_9_3&#x27;</span>, <span class="hljs-string">&#x27;D_9_3&#x27;</span>, <span class="hljs-string">&#x27;J_9_3&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        kdj_9_3 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;K_9_3&#x27;</span>, <span class="hljs-string">&#x27;D_9_3&#x27;</span>, <span class="hljs-string">&#x27;J_9_3&#x27;</span>]).fillna(<span class="hljs-number">0.5</span>)<br>    <span class="hljs-keyword">try</span>:<br>        kdj_19_3 = (dayline_df.ta.kdj(<span class="hljs-number">19</span>, <span class="hljs-number">3</span>) / <span class="hljs-number">100</span>).fillna(<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> kdj_19_3.columns.tolist() == [<span class="hljs-string">&#x27;K_19_3&#x27;</span>, <span class="hljs-string">&#x27;D_19_3&#x27;</span>, <span class="hljs-string">&#x27;J_19_3&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        kdj_19_3 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;K_19_3&#x27;</span>, <span class="hljs-string">&#x27;D_19_3&#x27;</span>, <span class="hljs-string">&#x27;J_19_3&#x27;</span>]).fillna(<span class="hljs-number">0.5</span>)<br>        <br>    <span class="hljs-keyword">try</span>:<br>        natr_3 = (dayline_df.ta.natr(length=<span class="hljs-number">3</span>) / <span class="hljs-number">10</span>).to_frame().fillna(<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> natr_3.columns.tolist() == [<span class="hljs-string">&#x27;NATR_3&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        natr_3 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;NATR_3&#x27;</span>]).fillna(<span class="hljs-number">0.5</span>) <br>    <span class="hljs-keyword">try</span>:<br>        natr_10 = (dayline_df.ta.natr(length=<span class="hljs-number">10</span>) / <span class="hljs-number">10</span>).to_frame().fillna(<span class="hljs-number">0.5</span>)<br>        <span class="hljs-keyword">assert</span> natr_10.columns.tolist() == [<span class="hljs-string">&#x27;NATR_10&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        natr_10 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;NATR_10&#x27;</span>]).fillna(<span class="hljs-number">0.5</span>)<br>    <br>    <span class="hljs-keyword">try</span>:<br>        log_return_10 = (dayline_df.ta.log_return(length=<span class="hljs-number">10</span>) * <span class="hljs-number">10</span> ).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>).fillna(<span class="hljs-number">0.0</span>).to_frame()<br>        <span class="hljs-keyword">assert</span> log_return_10.columns.tolist() == [<span class="hljs-string">&#x27;LOGRET_10&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        log_return_10 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;LOGRET_10&#x27;</span>]).fillna(<span class="hljs-number">0.</span>)<br>        <br>    <span class="hljs-keyword">try</span>:<br>        percent_return_1 = (dayline_df.ta.percent_return(length=<span class="hljs-number">1</span>)).to_frame().fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> percent_return_1.columns.tolist() == [<span class="hljs-string">&#x27;PCTRET_1&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        percent_return_1 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;PCTRET_1&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        percent_return_2 = (dayline_df.ta.percent_return(length=<span class="hljs-number">2</span>)).to_frame().fillna(<span class="hljs-number">0.0</span>) <br>        <span class="hljs-keyword">assert</span> percent_return_2.columns.tolist() == [<span class="hljs-string">&#x27;PCTRET_2&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        percent_return_2 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;PCTRET_2&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        percent_return_3 = (dayline_df.ta.percent_return(length=<span class="hljs-number">3</span>)).to_frame().fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> percent_return_3.columns.tolist() == [<span class="hljs-string">&#x27;PCTRET_3&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        percent_return_3 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;PCTRET_3&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        percent_return_4 = (dayline_df.ta.percent_return(length=<span class="hljs-number">4</span>)).to_frame().fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> percent_return_4.columns.tolist() == [<span class="hljs-string">&#x27;PCTRET_4&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        percent_return_4 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;PCTRET_4&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        percent_return_5 = (dayline_df.ta.percent_return(length=<span class="hljs-number">5</span>)).to_frame().fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> percent_return_5.columns.tolist() == [<span class="hljs-string">&#x27;PCTRET_5&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        percent_return_5 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;PCTRET_5&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br><br>    <span class="hljs-keyword">try</span>:<br>        zscore_5 = (dayline_df.ta.zscore(length=<span class="hljs-number">5</span>)).to_frame().fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> zscore_5.columns.tolist() == [<span class="hljs-string">&#x27;ZS_5&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        zscore_5 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;ZS_5&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        zscore_14 = (dayline_df.ta.zscore(length=<span class="hljs-number">14</span>)).to_frame().fillna(<span class="hljs-number">0.0</span>)<br>        <span class="hljs-keyword">assert</span> zscore_14.columns.tolist() == [<span class="hljs-string">&#x27;ZS_14&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        zscore_14 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;ZS_14&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <br>    <span class="hljs-keyword">try</span>:<br>        rvi_5 =  (dayline_df.ta.rvi(length=<span class="hljs-number">5</span>) / <span class="hljs-number">100</span>).fillna(<span class="hljs-number">0.5</span>).to_frame()<br>        <span class="hljs-keyword">assert</span> rvi_5.columns.tolist() == [<span class="hljs-string">&#x27;RVI_5&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        rvi_5 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;RVI_5&#x27;</span>]).fillna(<span class="hljs-number">0.0</span>)<br>    <span class="hljs-keyword">try</span>:<br>        rvi_14 =  (dayline_df.ta.rvi(length=<span class="hljs-number">14</span>) / <span class="hljs-number">100</span>).fillna(<span class="hljs-number">0.5</span>).to_frame()<br>        <span class="hljs-keyword">assert</span> rvi_14.columns.tolist() == [<span class="hljs-string">&#x27;RVI_14&#x27;</span>]<br>    <span class="hljs-keyword">except</span>:<br>        rvi_14 = pd.DataFrame(index=dayline_df.index, columns=[<span class="hljs-string">&#x27;RVI_14&#x27;</span>]).fillna(<span class="hljs-number">0.5</span>)<br>    <br>    rolling_money_3 = ((np.log1p((dayline_df[<span class="hljs-string">&#x27;money&#x27;</span>]).rolling(<span class="hljs-number">3</span>, min_periods=<span class="hljs-number">1</span>).mean()) - np.log1p((dayline_df[<span class="hljs-string">&#x27;money&#x27;</span>]))).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>)).to_frame().rename(columns=&#123;<span class="hljs-string">&#x27;money&#x27;</span>: <span class="hljs-string">&#x27;rolling_money_3&#x27;</span>&#125;)<br>    rolling_money_5 = ((np.log1p((dayline_df[<span class="hljs-string">&#x27;money&#x27;</span>]).rolling(<span class="hljs-number">5</span>, min_periods=<span class="hljs-number">1</span>).mean()) - np.log1p((dayline_df[<span class="hljs-string">&#x27;money&#x27;</span>]))).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>)).to_frame().rename(columns=&#123;<span class="hljs-string">&#x27;money&#x27;</span>: <span class="hljs-string">&#x27;rolling_money_5&#x27;</span>&#125;)<br>    rolling_money_10 = ((np.log1p((dayline_df[<span class="hljs-string">&#x27;money&#x27;</span>]).rolling(<span class="hljs-number">10</span>, min_periods=<span class="hljs-number">1</span>).mean()) - np.log1p((dayline_df[<span class="hljs-string">&#x27;money&#x27;</span>]))).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>)).to_frame().rename(columns=&#123;<span class="hljs-string">&#x27;money&#x27;</span>: <span class="hljs-string">&#x27;rolling_money_10&#x27;</span>&#125;)<br>    rolling_volume_3 = ((np.log1p((dayline_df[<span class="hljs-string">&#x27;volume&#x27;</span>]).rolling(<span class="hljs-number">3</span>, min_periods=<span class="hljs-number">1</span>).mean()) - np.log1p((dayline_df[<span class="hljs-string">&#x27;volume&#x27;</span>]))).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>)).to_frame().rename(columns=&#123;<span class="hljs-string">&#x27;volume&#x27;</span>: <span class="hljs-string">&#x27;rolling_volume_3&#x27;</span>&#125;)<br>    rolling_volume_5 = ((np.log1p((dayline_df[<span class="hljs-string">&#x27;volume&#x27;</span>]).rolling(<span class="hljs-number">5</span>, min_periods=<span class="hljs-number">1</span>).mean()) - np.log1p((dayline_df[<span class="hljs-string">&#x27;volume&#x27;</span>]))).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>)).to_frame().rename(columns=&#123;<span class="hljs-string">&#x27;volume&#x27;</span>: <span class="hljs-string">&#x27;rolling_volume_5&#x27;</span>&#125;)<br>    rolling_volume_10 = ((np.log1p((dayline_df[<span class="hljs-string">&#x27;volume&#x27;</span>]).rolling(<span class="hljs-number">10</span>, min_periods=<span class="hljs-number">1</span>).mean()) - np.log1p((dayline_df[<span class="hljs-string">&#x27;volume&#x27;</span>]))).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>)).to_frame().rename(columns=&#123;<span class="hljs-string">&#x27;volume&#x27;</span>: <span class="hljs-string">&#x27;rolling_volume_10&#x27;</span>&#125;)<br>    pct_volatility = ((dayline_df[<span class="hljs-string">&#x27;high&#x27;</span>] - dayline_df[<span class="hljs-string">&#x27;low&#x27;</span>])  / dayline_df[<span class="hljs-string">&#x27;close&#x27;</span>] * <span class="hljs-number">20</span>).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>).fillna(<span class="hljs-number">0.0</span>).to_frame().rename(columns=&#123;<span class="hljs-number">0</span>: <span class="hljs-string">&#x27;pct_volatility&#x27;</span>&#125;)<br><br>    rolling_pct_volatility_3 = ((dayline_df[<span class="hljs-string">&#x27;high&#x27;</span>].rolling(<span class="hljs-number">3</span>, min_periods=<span class="hljs-number">1</span>).<span class="hljs-built_in">max</span>() - dayline_df[<span class="hljs-string">&#x27;low&#x27;</span>].rolling(<span class="hljs-number">3</span>, min_periods=<span class="hljs-number">1</span>).<span class="hljs-built_in">min</span>()) / dayline_df[<span class="hljs-string">&#x27;close&#x27;</span>]* <span class="hljs-number">20</span>).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>).fillna(<span class="hljs-number">0.0</span>).to_frame().rename(columns=&#123;<span class="hljs-number">0</span>: <span class="hljs-string">&#x27;rolling_pct_volatility_3&#x27;</span>&#125;)<br>    rolling_pct_volatility_5 = ((dayline_df[<span class="hljs-string">&#x27;high&#x27;</span>].rolling(<span class="hljs-number">5</span>, min_periods=<span class="hljs-number">1</span>).<span class="hljs-built_in">max</span>() - dayline_df[<span class="hljs-string">&#x27;low&#x27;</span>].rolling(<span class="hljs-number">5</span>, min_periods=<span class="hljs-number">1</span>).<span class="hljs-built_in">min</span>()) / dayline_df[<span class="hljs-string">&#x27;close&#x27;</span>] * <span class="hljs-number">20</span>).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>).fillna(<span class="hljs-number">0.0</span>).to_frame().rename(columns=&#123;<span class="hljs-number">0</span>: <span class="hljs-string">&#x27;rolling_pct_volatility_5&#x27;</span>&#125;)<br>    rolling_pct_volatility_10 = ((dayline_df[<span class="hljs-string">&#x27;high&#x27;</span>].rolling(<span class="hljs-number">10</span>, min_periods=<span class="hljs-number">1</span>).<span class="hljs-built_in">max</span>() - dayline_df[<span class="hljs-string">&#x27;low&#x27;</span>].rolling(<span class="hljs-number">10</span>, min_periods=<span class="hljs-number">1</span>).<span class="hljs-built_in">min</span>()) / dayline_df[<span class="hljs-string">&#x27;close&#x27;</span>] * <span class="hljs-number">20</span>).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>).fillna(<span class="hljs-number">0.0</span>).to_frame().rename(columns=&#123;<span class="hljs-number">0</span>: <span class="hljs-string">&#x27;rolling_pct_volatility_10&#x27;</span>&#125;)<br><br>    <br>    feature_df = pd.concat([adx_2, adx_5, adx_22, cci_2, cci_5, cci_22, cmo_2, cmo_5, cmo_22, macd_12_26_9, macd_6_30_9, macd_24_52_9, ppo_12_26_9, ppo_24_52_9, pvo_12_26_9, pvo_24_52_9, mfi_2, mfi_5, rsi_2, rsi_5, rsi_14, uo_5_15_30, willr_3, willr_5, willr_10, willr_20, kdj_9_3, kdj_19_3, natr_3, natr_10, log_return_10, percent_return_1, percent_return_2, percent_return_3, percent_return_4, percent_return_5, zscore_5, zscore_14, rvi_5, rvi_14, rolling_money_3, rolling_money_5, rolling_money_10, rolling_volume_3, rolling_volume_5, rolling_volume_10, pct_volatility, rolling_pct_volatility_3, rolling_pct_volatility_5, rolling_pct_volatility_10], axis=<span class="hljs-number">1</span>)<br>    feature_df.columns = [<span class="hljs-string">&#x27;daily_%s&#x27;</span> % i <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> feature_df.columns]<br><br>    feature_df[<span class="hljs-string">&#x27;code&#x27;</span>] = dayline_df[<span class="hljs-string">&#x27;code&#x27;</span>]<br>    feature_df = feature_df.reset_index().set_index(<span class="hljs-string">&#x27;code&#x27;</span>).reset_index()<br>    feature_df.iloc[:, <span class="hljs-number">2</span>:] = feature_df.iloc[:, <span class="hljs-number">2</span>:].clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>).astype(np.float32)<br><br>    <span class="hljs-keyword">return</span> feature_df<br><br></code></pre></td></tr></table></figure>
+
+<h2 id="A股因子数据和标签生成"><a href="#A股因子数据和标签生成" class="headerlink" title="A股因子数据和标签生成"></a>A股因子数据和标签生成</h2><h3 id="标签生成"><a href="#标签生成" class="headerlink" title="标签生成"></a>标签生成</h3><p>本次使用申万行业分类作为建模目标，预测当天及次日的开盘、平均、收盘收益，即：</p>
+<ul>
+<li>今开/昨收：今日开盘相对昨天收盘的涨跌百分比(动量效应)</li>
+<li>今收/昨收：今日收盘相对昨天收盘的涨跌百分比(轮动效应)</li>
+<li>今均/昨收：今日平均价格相对昨天收盘的涨跌百分比(轮动效应)</li>
+<li>今收/今开：今日收盘相对今日开盘的涨跌百分比(日内趋势)</li>
+<li>今均/今开：今日平均价格相对今日开盘的涨跌百分比(日内趋势)</li>
+<li>明开/今开：明日开盘价格相对于今日开盘的涨跌百分比(短线效应)</li>
+<li>明收/今开：明日收盘价格相对于今日开盘的涨跌百分比(短线轮动)</li>
+<li>明均/今开：明日平均价格相对于今日开盘的涨跌百分比(短线轮动)</li>
+<li>明开/今均：明日开盘价格相对于今日平均的涨跌百分比(短线轮动)</li>
+<li>明均/今均：明日平均价格相对于今日平均的涨跌百分比(短线轮动)</li>
+</ul>
+<p>标签生成的过程可参考上篇<code>利用pandas_ta自动提取技术面特征</code>,一个例子为：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 日内：平均相对于昨收的涨跌百分比(开盘9:15时间截断)</span><br>sector_feature_intraday_avg_close = sector_feature_grouped.apply(<span class="hljs-keyword">lambda</span> row: ((row[<span class="hljs-string">&#x27;high&#x27;</span>] + row[<span class="hljs-string">&#x27;low&#x27;</span>]) / (<span class="hljs-number">2</span> * row.shift(<span class="hljs-number">1</span>)[<span class="hljs-string">&#x27;close&#x27;</span>]) - <span class="hljs-number">1</span>) * <span class="hljs-number">100</span>).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>).reset_index().rename(columns=&#123;<span class="hljs-number">0</span>: <span class="hljs-string">&#x27;intraday_avg_close&#x27;</span>&#125;).set_index([<span class="hljs-string">&#x27;trade_day&#x27;</span>, <span class="hljs-string">&#x27;code&#x27;</span>])<br><br><span class="hljs-comment"># 日间：第二天收盘相对于前一天开盘的涨跌百分比(开盘9:15时间截断)</span><br>sector_feature_daily_close_open = sector_feature_grouped.apply(<span class="hljs-keyword">lambda</span> row: (row.shift(-<span class="hljs-number">1</span>)[<span class="hljs-string">&#x27;close&#x27;</span>] / row[<span class="hljs-string">&#x27;open&#x27;</span>] - <span class="hljs-number">1</span>) * <span class="hljs-number">100</span>).clip(-<span class="hljs-number">10</span>, <span class="hljs-number">10</span>).reset_index().rename(columns=&#123;<span class="hljs-number">0</span>: <span class="hljs-string">&#x27;daily_close_open&#x27;</span>&#125;).set_index([<span class="hljs-string">&#x27;trade_day&#x27;</span>, <span class="hljs-string">&#x27;code&#x27;</span>])<br></code></pre></td></tr></table></figure>
+
+<p>最终，我们得到类似这样的标签数据：<br><img src="/img/trade_label.png" srcset="/img/loading.gif" lazyload></p>
+<h3 id="技术因子生成-1"><a href="#技术因子生成-1" class="headerlink" title="技术因子生成"></a>技术因子生成</h3><p>这里的技术因子同上美股市场，不再赘述。选择的标的为申万行业指数、沪深300成分股及其指数、中证500成分股及其指数，总共约1100多只。</p>
+<p>提取完美股和A股的技术因子后，需要将两者(cn_trade_day、us_trade_day)合并，与标签(trade_label_df)一起形成一个数据集。合并的规则是，以A股标签为基准，选择最近一个日期的A/美因子数据，考虑到部分标的数据可能存在的停牌、未上市、退市等特殊情况，还需要对技术因子生成一个掩码，排除掉这些无效数据：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><code class="hljs python">data = [] <br>mask = []<br><span class="hljs-keyword">for</span> ind, row <span class="hljs-keyword">in</span> tqdm(trade_label_df.iterrows(), total=<span class="hljs-built_in">len</span>(trade_label_df)):<br>    fea_mask = [<span class="hljs-number">0</span>] * (<span class="hljs-number">1119</span> + <span class="hljs-number">607</span>)<br>    trade_day = datetime.date(ind // <span class="hljs-number">10000</span>, (ind % <span class="hljs-number">10000</span>) // <span class="hljs-number">100</span>, ind % <span class="hljs-number">100</span>)<br>    <br>    cn_last_day = [i <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> cn_trade_day <span class="hljs-keyword">if</span> i &lt; trade_day]<br>    cn_fea = cn_df[cn_df.trade_day == cn_last_day[-<span class="hljs-number">1</span>]]<br>    cn_fea[<span class="hljs-string">&#x27;code&#x27;</span>] = cn_fea[<span class="hljs-string">&#x27;code&#x27;</span>] - <span class="hljs-number">1</span><br>    cn_fea_data = [<span class="hljs-number">0</span> ] * <span class="hljs-number">74</span> * <span class="hljs-number">1119</span><br>    <span class="hljs-keyword">for</span> row2 <span class="hljs-keyword">in</span> cn_fea.values:<br>        cn_fea_data[<span class="hljs-number">74</span> * row2[<span class="hljs-number">0</span>]: <span class="hljs-number">74</span> * (row2[<span class="hljs-number">0</span>] + <span class="hljs-number">1</span>)] = row2[<span class="hljs-number">2</span>:]<br>        fea_mask[row2[<span class="hljs-number">0</span>]] = <span class="hljs-number">1</span><br>        <br>    us_last_day = [i <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> us_trade_day <span class="hljs-keyword">if</span> i &lt; trade_day]<br>    us_fea = us_df[us_df.trade_day == us_last_day[-<span class="hljs-number">1</span>]]<br>    us_fea[<span class="hljs-string">&#x27;code&#x27;</span>] = us_fea[<span class="hljs-string">&#x27;code&#x27;</span>] - <span class="hljs-number">1300</span><br>    us_fea_data = [<span class="hljs-number">0</span> ] * <span class="hljs-number">74</span> * <span class="hljs-number">607</span><br>    <span class="hljs-keyword">for</span> row2 <span class="hljs-keyword">in</span> us_fea.values:<br>        us_fea_data[<span class="hljs-number">74</span> * row2[<span class="hljs-number">0</span>]: <span class="hljs-number">74</span> * (row2[<span class="hljs-number">0</span>] + <span class="hljs-number">1</span>)] = row2[<span class="hljs-number">2</span>:]<br>        fea_mask[row2[<span class="hljs-number">0</span>] + <span class="hljs-number">1119</span>] = <span class="hljs-number">1</span><br>    data.append(cn_fea_data + us_fea_data)<br>    mask.append(fea_mask)<br><br>X = np.array(data, dtype=np.float32)<br>mask = np.array(mask, dtype=np.int32)<br></code></pre></td></tr></table></figure>
+
+<h2 id="AI建模"><a href="#AI建模" class="headerlink" title="AI建模"></a>AI建模</h2><p>训练集为20220624之前的因子数据及其标签，验证集为20220624之后的15天数据，评估模型的实战效果。</p>
+<h3 id="数据读取"><a href="#数据读取" class="headerlink" title="数据读取"></a>数据读取</h3><p>使用Pytorch的Dataset读取提取的因子数据：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TechDataset</span>(<span class="hljs-params">Dataset</span>):</span><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__init__</span>(<span class="hljs-params">self, label=<span class="hljs-literal">None</span>, mask=<span class="hljs-literal">None</span>, feature=<span class="hljs-literal">None</span>, seq_len=<span class="hljs-number">1726</span>, output_size=<span class="hljs-number">223</span></span>):</span><br>        self.label = label<br>        self.mask = mask<br>        self.feature = feature<br>        self.seq_len = seq_len<br>        self.output_size = output_size<br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__len__</span>(<span class="hljs-params">self</span>):</span><br>        <span class="hljs-keyword">return</span> <span class="hljs-built_in">len</span>(self.label)<br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__getitem__</span>(<span class="hljs-params">self, idx</span>):</span><br>        label = torch.tensor(self.label[idx].reshape((self.output_size, <span class="hljs-number">10</span>)), dtype=torch.float32)<br>        input_mask = torch.tensor(self.mask[idx], dtype=torch.<span class="hljs-built_in">bool</span>)<br>        input_techs = torch.tensor(self.feature[idx].reshape((self.seq_len, <span class="hljs-number">74</span>)), dtype=torch.float32)<br>        <br>        <span class="hljs-keyword">return</span> label, input_mask, input_techs<br>    <br>X = np.load(<span class="hljs-string">&#x27;trade_X.npy&#x27;</span>)<br>y =  np.load(<span class="hljs-string">&#x27;trade_y.npy&#x27;</span>)<br>mask = np.load(<span class="hljs-string">&#x27;trade_y_mask.npy&#x27;</span>)<br><br>train_X, valid_X, train_y, valid_y, train_mask_X, valid_mask_X = X[:-<span class="hljs-number">15</span>], X[-<span class="hljs-number">15</span>:], y[:-<span class="hljs-number">15</span>], y[-<span class="hljs-number">15</span>:], mask[:-<span class="hljs-number">15</span>], mask[-<span class="hljs-number">15</span>:]<br>    <br>train_dataset = TechDataset(seq_len=<span class="hljs-number">1726</span>, output_size=<span class="hljs-number">223</span>, label=train_y, mask=train_mask_X, feature=train_X)<br>train_dataloader = DataLoader(train_dataset, batch_size=<span class="hljs-number">16</span>, shuffle=<span class="hljs-literal">True</span>, num_workers=<span class="hljs-number">4</span>)<br>    <br>valid_dataset = TechDataset(seq_len=<span class="hljs-number">1726</span>, output_size=<span class="hljs-number">223</span>, label=valid_y, mask=valid_mask_X, feature=valid_X)<br>valid_dataloader = DataLoader(valid_dataset, batch_size=<span class="hljs-number">15</span>, shuffle=<span class="hljs-literal">False</span>, num_workers=<span class="hljs-number">4</span>)<br></code></pre></td></tr></table></figure>
+
+<h3 id="结构设计"><a href="#结构设计" class="headerlink" title="结构设计"></a>结构设计</h3><p>首先通过一个GLU单元将技术因子数据维度标准到64维，然后使用Transformer对因子数据建模，输出一个<code>Batch * Seq_len * Dim</code>的向量，然后通过<code>TechPredictor</code>部分进行池化、分类，最终得到<code>Batch * 223 * 10</code>的结果，223为标签种类，10为每类收益指标。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><code class="hljs python"><br><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">GatedLinearUnit</span>(<span class="hljs-params">nn.Module</span>):</span><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__init__</span>(<span class="hljs-params">self, input_size,</span></span><br><span class="hljs-params"><span class="hljs-function">                 hidden_layer_size,</span></span><br><span class="hljs-params"><span class="hljs-function">                 dropout_rate=<span class="hljs-literal">None</span>,</span></span><br><span class="hljs-params"><span class="hljs-function">                 activation = <span class="hljs-literal">None</span></span>):</span><br>        <br>        <span class="hljs-built_in">super</span>(GatedLinearUnit, self).__init__()<br><br>        self.input_size = input_size<br>        self.hidden_layer_size = hidden_layer_size<br>        self.dropout_rate = dropout_rate<br>        self.activation_name = activation<br>        <br>        <span class="hljs-keyword">if</span> self.dropout_rate:<br>            self.dropout = nn.Dropout(p=self.dropout_rate)<br>            <br>        self.W4 = nn.Linear(self.input_size, self.hidden_layer_size)<br>        self.W5 = nn.Linear(self.input_size, self.hidden_layer_size)<br>        <br>        <span class="hljs-keyword">if</span> self.activation_name:<br>            self.activation = <span class="hljs-built_in">getattr</span>(nn, self.activation_name)()<br>            <br>        self.sigmoid = nn.Sigmoid()<br>            <br>        self.init_weights()<br>            <br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">init_weights</span>(<span class="hljs-params">self</span>):</span><br>        <span class="hljs-keyword">for</span> n, p <span class="hljs-keyword">in</span> self.named_parameters():<br>            <span class="hljs-keyword">if</span> <span class="hljs-string">&#x27;bias&#x27;</span> <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> n:<br>                torch.nn.init.xavier_uniform_(p)<br>            <span class="hljs-keyword">elif</span> <span class="hljs-string">&#x27;bias&#x27;</span> <span class="hljs-keyword">in</span> n:<br>                torch.nn.init.zeros_(p)<br>            <br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">forward</span>(<span class="hljs-params">self, x</span>):</span><br>        <span class="hljs-keyword">if</span> self.dropout_rate:<br>            x = self.dropout(x)<br>      <br>        <span class="hljs-keyword">if</span> self.activation_name:<br>            output = self.sigmoid(self.W4(x)) * self.activation(self.W5(x))<br>        <span class="hljs-keyword">else</span>:<br>            output = self.sigmoid(self.W4(x)) * self.W5(x)<br>            <br>        <span class="hljs-keyword">return</span> output<br><br><br><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TechEncoder</span>(<span class="hljs-params">nn.Module</span>):</span><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__init__</span>(<span class="hljs-params">self, depth=<span class="hljs-number">1</span>, dim=<span class="hljs-number">64</span>, group_size=<span class="hljs-number">64</span>, query_key_dim=<span class="hljs-number">32</span>, attn_dropout=<span class="hljs-number">0.2</span></span>):</span><br>        <span class="hljs-built_in">super</span>().__init__()<br>        self.dim = dim<br>        self.tech_emb = GatedLinearUnit(<span class="hljs-number">74</span>, dim)<br>        self.transformer_layers = nn.ModuleList([FLASH(dim=dim, group_size=group_size, query_key_dim=query_key_dim, causal=<span class="hljs-literal">False</span>, dropout=attn_dropout) <span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(depth)])<br>        self.norm = nn.LayerNorm(dim)<br>        <br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">forward</span>(<span class="hljs-params">self, input_techs, attention_mask</span>):</span><br>        input_feature = self.tech_emb(input_techs) <span class="hljs-comment"># Batch * seq_len  * dim</span><br>        <span class="hljs-keyword">for</span> flash <span class="hljs-keyword">in</span> self.transformer_layers:<br>            input_feature = flash(input_feature, mask=attention_mask)<br>        output = self.norm(input_feature) <span class="hljs-comment"># Batch  * seq_len * dim</span><br>        <br>        <span class="hljs-keyword">return</span> output, attention_mask<br>    <br><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TechPredictor</span>(<span class="hljs-params">nn.Module</span>):</span><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__init__</span>(<span class="hljs-params">self, depth=<span class="hljs-number">1</span>, dim=<span class="hljs-number">64</span>, seq_len=<span class="hljs-number">1726</span>, output_size=<span class="hljs-number">223</span>, class_num=<span class="hljs-number">10</span></span>):</span><br>        <span class="hljs-built_in">super</span>(TechPredictor, self).__init__()<br>        self.tech_encoder = TechEncoder(depth=depth, dim=dim)<br>        stride = np.floor(seq_len / output_size).astype(<span class="hljs-built_in">int</span>)<br>        kernel_size =  seq_len - (output_size - <span class="hljs-number">1</span>) * stride<br>        self.max_pooling = nn.MaxPool1d(kernel_size=kernel_size, stride=stride)<br>        self.classifier = nn.Linear(in_features=dim, out_features=class_num)<br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">forward</span>(<span class="hljs-params">self, input_techs, attention_mask</span>):</span><br>        tech_feature, attention_mask = self.tech_encoder(input_techs, attention_mask) <br>        tech_feature = tech_feature * attention_mask.unsqueeze(-<span class="hljs-number">1</span>)<br>        output = self.max_pooling(tech_feature.transpose(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>).contiguous()).transpose(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>).contiguous() <span class="hljs-comment"># Batch  * 223 * 128</span><br>        output = self.classifier(output)  <span class="hljs-comment"># Batch  * 223 * 10</span><br>        <span class="hljs-keyword">return</span> output<br><br></code></pre></td></tr></table></figure>
+
+<h3 id="损失函数"><a href="#损失函数" class="headerlink" title="损失函数"></a>损失函数</h3><p>直接使用均方误差损失函数优化模型，同时也计算出pearson相关系数供参考：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">calc_loss</span>(<span class="hljs-params">y_true, y_pred</span>):</span><br>    y_true = y_true.reshape(-<span class="hljs-number">1</span>, <span class="hljs-number">10</span>)<br>    y_pred = y_pred.reshape(-<span class="hljs-number">1</span>, <span class="hljs-number">10</span>)<br>    y_true_label = y_true - y_true.mean(dim=<span class="hljs-number">0</span>, keepdim=<span class="hljs-literal">True</span>)<br>    y_pred_label =  y_pred - y_pred.mean(dim=<span class="hljs-number">0</span>, keepdim=<span class="hljs-literal">True</span>)<br>    loss = F.mse_loss(y_pred, y_true)<br>    pearson = torch.cosine_similarity(y_true_label ,y_pred_label, dim=<span class="hljs-number">0</span>, eps=<span class="hljs-number">1e-6</span>)<br>    <span class="hljs-keyword">return</span> loss, pearson<br></code></pre></td></tr></table></figure>
+
+<h3 id="训练主流程"><a href="#训练主流程" class="headerlink" title="训练主流程"></a>训练主流程</h3><p>迭代30次，每次训练完后评估效果：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs python">model = TechPredictor(depth=<span class="hljs-number">1</span>, dim=<span class="hljs-number">128</span>, seq_len=<span class="hljs-number">1726</span>, output_size=<span class="hljs-number">223</span>, class_num=<span class="hljs-number">10</span>)<br><br>model = model.to(device)<br>opt = optim.AdamW(model.parameters(), lr=<span class="hljs-number">2e-5</span>)<br>step = <span class="hljs-number">0</span><br><br><span class="hljs-keyword">for</span> epoch <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">0</span>, <span class="hljs-number">30</span>):<br>    model.train()<br>    <span class="hljs-keyword">for</span> ind, batch <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(train_dataloader):<br>        label, input_mask, input_techs = batch<br>        logit = model(input_techs.to(device), input_mask.to(device))<br>        loss, pearson = calc_loss(label.to(device), logit)<br>              <br>        writer.add_scalars(<span class="hljs-string">&#x27;train&#x27;</span>, &#123;<span class="hljs-string">&#x27;loss&#x27;</span>:loss.item()&#125;, step)<br>        <br>        loss.backward()<br>        opt.step()<br>        opt.zero_grad()<br>        <br>        step += <span class="hljs-number">1</span><br>    model.<span class="hljs-built_in">eval</span>()<br>    <span class="hljs-keyword">with</span> torch.no_grad():<br>        loss_valid = &#123;<span class="hljs-number">0</span>: [], <span class="hljs-number">1</span>:[], <span class="hljs-number">2</span>:[], <span class="hljs-number">3</span>:[], <span class="hljs-number">4</span>:[], <span class="hljs-number">5</span>:[], <span class="hljs-number">6</span>:[], <span class="hljs-number">7</span>:[], <span class="hljs-number">8</span>:[], <span class="hljs-number">9</span>:[]&#125;<br>        loss_mean = []<br>        <span class="hljs-keyword">for</span> ind, batch <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(valid_dataloader):<br>            label, input_mask, input_techs = batch<br>            logit = model(input_techs.to(device), input_mask.to(device))<br>            loss, pearson = calc_loss(label.to(device), logit)<br>            <span class="hljs-keyword">for</span> ind, v <span class="hljs-keyword">in</span>  <span class="hljs-built_in">enumerate</span>(pearson.cpu().tolist()):<br>                loss_valid[ind].append(v)<br>            loss_mean.append(loss.item())         <br>    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;Epoch: %d, loss: %.4f&quot;</span> % (epoch, np.mean(loss_mean)))<br>    torch.save(model.state_dict(), model_dir + <span class="hljs-string">&quot;/tech_model/TechPredictor2_%d.torch&quot;</span> % epoch)      <br></code></pre></td></tr></table></figure>
+
+<h2 id="结果分析"><a href="#结果分析" class="headerlink" title="结果分析"></a>结果分析</h2><p>将验证集上的预测结果取出，基准数据沪深300、中证500、创业板指的指标均取<code>明均/今均</code>,预测指标限定在次日收益(‘明均/今均’, ‘明均/今开’, ‘明收/今均’, ‘明开/今开’, ‘明开/今均’)中，<code>Top5收益</code>表示取Top5的预测行业对应的平均收益，<code>Top5预估值</code>表示AI模型预测的均值，Top10类似。</p>
+<table>
+<thead>
+<tr>
+<th align="right">日期</th>
+<th align="right">沪深300</th>
+<th align="right">中证500</th>
+<th align="right">创业板指</th>
+<th align="right">Top5收益</th>
+<th align="right">Top5预估值</th>
+<th align="right">Top10收益</th>
+<th align="right">Top10预估值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">20220624</td>
+<td align="right">1.603</td>
+<td align="right">1.238</td>
+<td align="right">1.737</td>
+<td align="right">4.416</td>
+<td align="right">0.578</td>
+<td align="right">2.686</td>
+<td align="right">0.568</td>
+</tr>
+<tr>
+<td align="right">20220627</td>
+<td align="right">0.205</td>
+<td align="right">0.461</td>
+<td align="right">-1.069</td>
+<td align="right">2.752</td>
+<td align="right">0.515</td>
+<td align="right">1.88</td>
+<td align="right">0.5</td>
+</tr>
+<tr>
+<td align="right">20220628</td>
+<td align="right">0.133</td>
+<td align="right">-0.212</td>
+<td align="right">-0.22</td>
+<td align="right">1.277</td>
+<td align="right">0.614</td>
+<td align="right">0.479</td>
+<td align="right">0.601</td>
+</tr>
+<tr>
+<td align="right">20220629</td>
+<td align="right">0.179</td>
+<td align="right">0.054</td>
+<td align="right">-0.046</td>
+<td align="right">0.406</td>
+<td align="right">0.526</td>
+<td align="right">0.19</td>
+<td align="right">0.521</td>
+</tr>
+<tr>
+<td align="right">20220630</td>
+<td align="right">0.193</td>
+<td align="right">0.207</td>
+<td align="right">-0.285</td>
+<td align="right">1.504</td>
+<td align="right">0.632</td>
+<td align="right">1.074</td>
+<td align="right">0.612</td>
+</tr>
+<tr>
+<td align="right">20220701</td>
+<td align="right">-0.295</td>
+<td align="right">0.191</td>
+<td align="right">-0.151</td>
+<td align="right">-0.218</td>
+<td align="right">0.858</td>
+<td align="right">0.207</td>
+<td align="right">0.817</td>
+</tr>
+<tr>
+<td align="right">20220704</td>
+<td align="right">0.515</td>
+<td align="right">0.42</td>
+<td align="right">1.164</td>
+<td align="right">1.628</td>
+<td align="right">0.485</td>
+<td align="right">2.107</td>
+<td align="right">0.472</td>
+</tr>
+<tr>
+<td align="right">20220705</td>
+<td align="right">-1.026</td>
+<td align="right">-0.983</td>
+<td align="right">-0.231</td>
+<td align="right">0.218</td>
+<td align="right">0.485</td>
+<td align="right">-0.1</td>
+<td align="right">0.472</td>
+</tr>
+<tr>
+<td align="right">20220706</td>
+<td align="right">-0.329</td>
+<td align="right">0.048</td>
+<td align="right">0.182</td>
+<td align="right">-0.496</td>
+<td align="right">0.53</td>
+<td align="right">-0.755</td>
+<td align="right">0.515</td>
+</tr>
+<tr>
+<td align="right">20220707</td>
+<td align="right">0.654</td>
+<td align="right">0.247</td>
+<td align="right">0.946</td>
+<td align="right">0.906</td>
+<td align="right">0.471</td>
+<td align="right">1.522</td>
+<td align="right">0.45</td>
+</tr>
+<tr>
+<td align="right">20220708</td>
+<td align="right">-1.905</td>
+<td align="right">-1.8</td>
+<td align="right">-2.652</td>
+<td align="right">-1.338</td>
+<td align="right">0.228</td>
+<td align="right">-1.445</td>
+<td align="right">0.22</td>
+</tr>
+<tr>
+<td align="right">20220711</td>
+<td align="right">-0.799</td>
+<td align="right">-0.609</td>
+<td align="right">-1.36</td>
+<td align="right">-0.425</td>
+<td align="right">0.327</td>
+<td align="right">-0.922</td>
+<td align="right">0.31</td>
+</tr>
+<tr>
+<td align="right">20220712</td>
+<td align="right">-0.468</td>
+<td align="right">-0.713</td>
+<td align="right">-0.636</td>
+<td align="right">-1.397</td>
+<td align="right">0.494</td>
+<td align="right">-1.267</td>
+<td align="right">0.456</td>
+</tr>
+<tr>
+<td align="right">20220713</td>
+<td align="right">0.214</td>
+<td align="right">0.79</td>
+<td align="right">2.588</td>
+<td align="right">0.666</td>
+<td align="right">0.583</td>
+<td align="right">1.286</td>
+<td align="right">0.57</td>
+</tr>
+<tr>
+<td align="right">20220714</td>
+<td align="right">-0.595</td>
+<td align="right">-0.586</td>
+<td align="right">0.319</td>
+<td align="right">-1.321</td>
+<td align="right">0.421</td>
+<td align="right">-1.239</td>
+<td align="right">0.414</td>
+</tr>
+</tbody></table>
+<p>从结果上看<code>Top5收益</code>整体是优于基准指数的，平均收益达到0.5以上，如果做一次过滤，取预估值大于0.5，那么平均收益可达1.2以上，可以起到一定的择时、选股效果。</p>
+<p>以6月24号为例，AI模型选择出的Top5行业以及买卖时间策略，收益高达4个点以上：</p>
+<table>
+<thead>
+<tr>
+<th align="right">trade_day</th>
+<th align="left">sector</th>
+<th align="left">metric</th>
+<th align="right">actual</th>
+<th align="right">prediction</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">20220624</td>
+<td align="left">申万多业态零售</td>
+<td align="left">明均/今开</td>
+<td align="right">1.6</td>
+<td align="right">0.586</td>
+</tr>
+<tr>
+<td align="right">20220624</td>
+<td align="left">申万酒店</td>
+<td align="left">明均/今开</td>
+<td align="right">7.362</td>
+<td align="right">0.584</td>
+</tr>
+<tr>
+<td align="right">20220624</td>
+<td align="left">申万旅游综合</td>
+<td align="left">明均/今开</td>
+<td align="right">8.8</td>
+<td align="right">0.576</td>
+</tr>
+<tr>
+<td align="right">20220624</td>
+<td align="left">申万百货</td>
+<td align="left">明均/今开</td>
+<td align="right">1.812</td>
+<td align="right">0.573</td>
+</tr>
+<tr>
+<td align="right">20220624</td>
+<td align="left">申万超市</td>
+<td align="left">明均/今开</td>
+<td align="right">2.508</td>
+<td align="right">0.572</td>
+</tr>
+</tbody></table>
+<h4 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/PPduk4xPcix9USW9HmUpHw">利用pandas_ta自动提取技术面特征</a></li>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/CJxhVB6m2-DINp1mGNL4Bw">基于新闻事件Bert序列建模的行业涨跌预测</a></li>
+</ul>
+<hr>
+<p>欢迎关注我的公众号“<strong>量化实战</strong>”，原创技术文章第一时间推送。</p>
+<p><img src="/img/qrcode.jpg" srcset="/img/loading.gif" lazyload></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/pandas-ta/">pandas_ta</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E6%8A%80%E6%9C%AF%E5%88%86%E6%9E%90/">技术分析</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E8%B7%A8%E5%B8%82%E5%9C%BA%E8%81%94%E5%8A%A8/">跨市场联动</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E7%BE%8E%E8%82%A1/">美股</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">
+                  
+                    本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！
+                  
+                </p>
+              
+              
+                <div class="post-prevnext">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/07/10/%E8%BF%85%E6%8A%95QMT%E8%82%A1%E7%A5%A8%E4%BA%A4%E6%98%93%E6%8E%A5%E5%8F%A3%E5%B0%81%E8%A3%85/">
+                        <span class="hidden-mobile">迅投QMT量化平台交易接口封装</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments" lazyload>
+                
+                  
+                
+                
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appKey":"ODqlMdJWwrMxHFHzfz3pMvBS","path":"window.location.pathname","placeholder":"说点什么","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":null,"emojiCDN":null,"emojiMaps":null,"enableQQ":false,"appid":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appkey":"ODqlMdJWwrMxHFHzfz3pMvBS"},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          Fluid.plugins.initFancyBox('#valine .vcontent img:not(.vemoji)');
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+  </main>
+
+  <footer class="text-center mt-5 py-3">
+  <div class="footer-content">
+     <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+  </div>
+  
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- LeanCloud 统计PV -->
+        <span id="leancloud-site-pv-container" style="display: none">
+            总访问量 
+            <span id="leancloud-site-pv"></span>
+             次
+          </span>
+      
+      
+        <!-- LeanCloud 统计UV -->
+        <span id="leancloud-site-uv-container" style="display: none">
+            总访客数 
+            <span id="leancloud-site-uv"></span>
+             人
+          </span>
+      
+
+    
+  </div>
+
+
+  
+  <!-- 备案信息 -->
+  <div class="beian">
+    <span>
+      <a href="http://beian.miit.gov.cn/" target="_blank" rel="nofollow noopener">
+        粤ICP备19097965号
+      </a>
+    </span>
+    
+  </div>
+
+
+  
+</footer>
+
+
+  <!-- SCRIPTS -->
+  
+  <script  src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" ></script>
+<script  src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+<!-- Plugins -->
+
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  
+    <script  src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js" ></script>
+  
+  
+    <script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js" ></script>
+  
+
+
+
+
+  <script defer src="/js/leancloud.js" ></script>
+
+
+
+  <script  src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var title = document.getElementById('subtitle').title;
+      
+        typing(title);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <!-- Baidu Analytics -->
+    <script defer>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?e2bacb4062644434b87a03658392592e";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+  
+
+  
+
+  
+    <!-- Google gtag.js -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YSYVRNN9T"></script>
+    <script defer>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-7YSYVRNN9T');
+    </script>
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+<!-- 主题的启动项 保持在最底部 -->
+<script  src="/js/boot.js" ></script>
+
+
+</body>
+</html>
