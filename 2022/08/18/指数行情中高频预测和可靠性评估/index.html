@@ -1,0 +1,925 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.jpg">
+  <link rel="icon" href="/img/favicon.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Keyun Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="国内主要指数(上证50、沪深300、中证500、中证1000)均有相应的期货&#x2F;期权衍生品交易品种，为高频日内交易提供了可能。本文探索利用机器学习技术预测中短期行情(10分钟以内)走势的可能性，并在验证集上评估预测效果。总体来看，短期预测的结果与真实情况具有较强的相关性，在进一步加工处理后，可作为策略信号指导期货&#x2F;期权交易。  一、数据数据分为两类，一类是行情数据，另一类是标签数据，本节介绍这两类">
+<meta property="og:type" content="article">
+<meta property="og:title" content="指数中高频行情预测和可靠性评估">
+<meta property="og:url" content="https://keyunluo.github.io/2022/08/18/%E6%8C%87%E6%95%B0%E8%A1%8C%E6%83%85%E4%B8%AD%E9%AB%98%E9%A2%91%E9%A2%84%E6%B5%8B%E5%92%8C%E5%8F%AF%E9%9D%A0%E6%80%A7%E8%AF%84%E4%BC%B0/index.html">
+<meta property="og:site_name" content="流光">
+<meta property="og:description" content="国内主要指数(上证50、沪深300、中证500、中证1000)均有相应的期货&#x2F;期权衍生品交易品种，为高频日内交易提供了可能。本文探索利用机器学习技术预测中短期行情(10分钟以内)走势的可能性，并在验证集上评估预测效果。总体来看，短期预测的结果与真实情况具有较强的相关性，在进一步加工处理后，可作为策略信号指导期货&#x2F;期权交易。  一、数据数据分为两类，一类是行情数据，另一类是标签数据，本节介绍这两类">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+<meta property="article:published_time" content="2022-08-18T00:00:00.000Z">
+<meta property="article:modified_time" content="2022-08-17T13:35:51.192Z">
+<meta property="article:author" content="Keyun Luo">
+<meta property="article:tag" content="量化交易">
+<meta property="article:tag" content="深度学习">
+<meta property="article:tag" content="行情预测">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+  
+  
+  <title>指数中高频行情预测和可靠性评估 - 流光</title>
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/github-gist.min.css" />
+    
+  
+
+  
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    var CONFIG = {"hostname":"keyunluo.github.io","root":"/","version":"1.8.14","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"right","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"copy_btn":true,"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"baidu":"e2bacb4062644434b87a03658392592e","google":null,"gtag":"G-7YSYVRNN9T","tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","app_key":"ODqlMdJWwrMxHFHzfz3pMvBS","server_url":"https://nqndu9io.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+
+<body>
+  <header style="height: 30vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>博客</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner" id="banner" parallax=true
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="page-header text-center fade-in-up">
+            <span class="h2" id="subtitle" title="指数中高频行情预测和可靠性评估">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2022-08-18 08:00" pubdate>
+        2022年8月18日 早上
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      6.7k 字
+    </span>
+  
+
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      56 分钟
+    </span>
+  
+
+  
+  
+    
+      <!-- LeanCloud 统计文章PV -->
+      <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+        <i class="iconfont icon-eye" aria-hidden="true"></i>
+        <span id="leancloud-page-views"></span> 次
+      </span>
+    
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">指数中高频行情预测和可靠性评估</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2022年8月17日 晚上
+                
+              </p>
+            
+            <div class="markdown-body">
+              <blockquote>
+<p>国内主要指数(上证50、沪深300、中证500、中证1000)均有相应的期货/期权衍生品交易品种，为高频日内交易提供了可能。本文探索利用机器学习技术预测中短期行情(10分钟以内)走势的可能性，并在验证集上评估预测效果。总体来看，短期预测的结果与真实情况具有较强的相关性，在进一步加工处理后，可作为策略信号指导期货/期权交易。</p>
+</blockquote>
+<h2 id="一、数据"><a href="#一、数据" class="headerlink" title="一、数据"></a>一、数据</h2><p>数据分为两类，一类是行情数据，另一类是标签数据，本节介绍这两类数据的一个基本处理情况。</p>
+<h3 id="1-1-行情数据处理"><a href="#1-1-行情数据处理" class="headerlink" title="1.1 行情数据处理"></a>1.1 行情数据处理</h3><p>行情数据又可分为日内行情和日间行情，以及A股和美股市场，根据不同粒度抽取不同的特征。</p>
+<h4 id="1-1-1-市场"><a href="#1-1-1-市场" class="headerlink" title="1.1.1 市场"></a>1.1.1 市场</h4><ul>
+<li>A股市场<ul>
+<li>主要指数:上证50、沪深300、中证500、中证1000</li>
+<li>成分股:沪深300+中证500+中证1000，共1800支股票</li>
+<li>ETF: 主要行业ETF以及宽基ETF</li>
+</ul>
+</li>
+<li>美国市场：<ul>
+<li>成分股: 标普500大盘股+标普400中盘股+ARK基金成分股+主流中概股，约1200只股票</li>
+<li>ETF: 主要行业ETF以及宽基ETF</li>
+</ul>
+</li>
+</ul>
+<h4 id="1-1-2-日内和日间技术特征提取"><a href="#1-1-2-日内和日间技术特征提取" class="headerlink" title="1.1.2 日内和日间技术特征提取"></a>1.1.2 日内和日间技术特征提取</h4><p>主要使用pandas-ta提取RSI、KDJ、Willr等技术因子，以及日内涨跌速度、涨跌幅等统计因子。相关实现见文后往期文章。</p>
+<h4 id="1-1-3-日间财务特征提取"><a href="#1-1-3-日间财务特征提取" class="headerlink" title="1.1.3 日间财务特征提取"></a>1.1.3 日间财务特征提取</h4><p>目前使用<a target="_blank" rel="noopener" href="https://www.ricequant.com/doc/rqdata/python/fundamentals-dictionary.html#%E4%BC%B0%E5%80%BC%E6%9C%89%E5%85%B3%E6%8C%87%E6%A0%87">财务数据-估值有关指标</a>，进行必要的放缩处理后供机器学习模型使用。</p>
+<p>一个小技巧是，使用log变换可将数据有效平滑，例如下面的市盈率因子：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><div class="code-wrapper"><pre><span class="line">1</span><br></pre></div></td><td class="code"><pre><code class="hljs python">df[<span class="hljs-string">&#x27;pe_ratio_lyr_clip&#x27;</span>] = (np.sign(df[<span class="hljs-string">&#x27;pe_ratio_lyr&#x27;</span>]) * np.log1p(df[<span class="hljs-string">&#x27;pe_ratio_lyr&#x27;</span>].<span class="hljs-built_in">abs</span>()) / <span class="hljs-number">10</span>).clip(-<span class="hljs-number">3</span>, <span class="hljs-number">3</span>)<br></code></pre></td></tr></table></figure>
+
+<h4 id="1-1-4-数据存储"><a href="#1-1-4-数据存储" class="headerlink" title="1.1.4 数据存储"></a>1.1.4 数据存储</h4><p>这里将行情数据进行上述加工后，存储到数据库clickhouse中，需要注意的是，使用默认的Float32格式存储，会消耗相当大的空间，尤其是分钟级的日内因子特征。因此，这里处理的技巧是将数据放缩到Short类型(-2^15 ~ 2^15 -1)，使用Int16类型节省一半空间。</p>
+<h3 id="1-2-标签数据处理"><a href="#1-2-标签数据处理" class="headerlink" title="1.2 标签数据处理"></a>1.2 标签数据处理</h3><p>为了同时预测上证50、沪深300、中证500、中证1000在3分钟、5分钟、10分钟内1/4分位、2/4分位、3/4分位的平均收益，我们需要生成36个标签。</p>
+<p>由于使用未来的数据进行统计，因此对每只股票、每天的日内情况，先逆序，然后移动一位排除自身，最后通过rolling滑窗的方式统计区间内的四分为值(1/4、2/4、3/4)，最后再逆序回来：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs python">data[<span class="hljs-string">&#x27;pct_rolling_3_25&#x27;</span>] = ((data_grouped[<span class="hljs-string">&#x27;minute_avg&#x27;</span>].transform(<span class="hljs-keyword">lambda</span> row: row[::-<span class="hljs-number">1</span>].shift(<span class="hljs-number">1</span>).rolling(<span class="hljs-number">3</span>, min_periods=<span class="hljs-number">1</span>).quantile(<span class="hljs-number">0.25</span>)[::-<span class="hljs-number">1</span>]) - data[<span class="hljs-string">&#x27;minute_avg&#x27;</span>]).div(data[<span class="hljs-string">&#x27;minute_avg&#x27;</span>]) * <span class="hljs-number">100000</span>).clip(-<span class="hljs-number">2</span>**<span class="hljs-number">15</span>, <span class="hljs-number">2</span>**<span class="hljs-number">15</span>-<span class="hljs-number">1</span>).<span class="hljs-built_in">round</span>()<br></code></pre></td></tr></table></figure>
+
+
+<h2 id="二、模型"><a href="#二、模型" class="headerlink" title="二、模型"></a>二、模型</h2><p>基于上述数据，我们构建一个多标签的深度回归模型，将日内技术特征、时间特征、国内市场日间特征、美国市场日间特征、国内市场股票估值特征等因子联合建模，希望学到他们之间复杂的关系。主体的代码框架如下，其中<code>TickerEncoder</code>是一个Embedding模块，负责将所有涉及到的股票ticker编码然后映射成一个向量，<code>TimeEncoder</code>负责将时间编码成一个向量，<code>FeatureEncoder</code>则将输入的特征数据进行加工后进行池化降维，然后统一拼接到一起，通过分类器预测出36个类别。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">DeepPredictor</span>(<span class="hljs-params">nn.Module</span>):</span><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__init__</span>(<span class="hljs-params">self, ticker_dim=<span class="hljs-number">16</span>, depth=<span class="hljs-number">1</span>, output_dim=<span class="hljs-number">32</span>, class_num=<span class="hljs-number">36</span></span>):</span><br>        <span class="hljs-built_in">super</span>(DeepPredictor, self).__init__()<br>        self.ticker_encoder = TickerEncoder(dim=ticker_dim)<br>        self.time_encoder = TimeEncoder(dim=<span class="hljs-number">4</span>, out_dim=output_dim)<br>        self.intraday_tech_encoder = FeatureEncoder(self.ticker_encoder, tech_dim=<span class="hljs-number">18</span>, ticker_dim=ticker_dim, output_dim=output_dim, depth=depth)<br>        self.daily_tech_cn_encoder = FeatureEncoder(self.ticker_encoder, tech_dim=<span class="hljs-number">23</span>, ticker_dim=ticker_dim, output_dim=output_dim, depth=depth)<br>        self.daily_tech_us_encoder = FeatureEncoder(self.ticker_encoder, tech_dim=<span class="hljs-number">23</span>, ticker_dim=ticker_dim, output_dim=output_dim, depth=depth)<br>        self.daily_fin_cn_encoder = FeatureEncoder(self.ticker_encoder, tech_dim=<span class="hljs-number">23</span>, ticker_dim=ticker_dim, output_dim=output_dim, depth=depth)<br>        self.pooling = nn.AdaptiveAvgPool1d(<span class="hljs-number">1</span>)<br>        self.pooling2 = nn.AdaptiveMaxPool1d(<span class="hljs-number">1</span>)<br>        self.classifier = nn.Linear(in_features=output_dim * <span class="hljs-number">6</span>, out_features=class_num)<br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">forward</span>(<span class="hljs-params">self, timestamp, intraday_tech_fea, intraday_tech_ticker, daily_tech_fea_cn, daily_tech_ticker_cn, daily_fin_fea_cn, daily_fin_ticker_cn, daily_tech_fea_us, daily_tech_ticker_us</span>):</span><br>        time_out = self.time_encoder(timestamp.squeeze(<span class="hljs-number">0</span>)) <span class="hljs-comment"># seq_len * dim</span><br>        intraday_tech_out = self.intraday_tech_encoder(intraday_tech_fea.squeeze(<span class="hljs-number">0</span>), intraday_tech_ticker.squeeze(<span class="hljs-number">0</span>)) <span class="hljs-comment"># seq_len * ticker_len * dim</span><br>        intraday_tech_out1 = self.pooling(intraday_tech_out.transpose(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>)).squeeze(<span class="hljs-number">2</span>) <span class="hljs-comment"># seq_len * dim</span><br>        intraday_tech_out2 = self.pooling2(intraday_tech_out.transpose(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>)).squeeze(<span class="hljs-number">2</span>) <span class="hljs-comment"># seq_len * dim</span><br>        seq_len = intraday_tech_out.shape[<span class="hljs-number">0</span>]<br><br>        daily_tech_cn_out = self.daily_tech_cn_encoder(daily_tech_fea_cn, daily_tech_ticker_cn) <span class="hljs-comment"># seq_len * ticker_len * dim</span><br>        daily_tech_cn_out = self.pooling(daily_tech_cn_out.transpose(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>)).squeeze(<span class="hljs-number">2</span>).repeat(seq_len, <span class="hljs-number">1</span>) <span class="hljs-comment"># seq_len * dim</span><br><br>        daily_fin_cn_out = self.daily_fin_cn_encoder(daily_fin_fea_cn, daily_fin_ticker_cn) <span class="hljs-comment"># seq_len * ticker_len * dim</span><br>        daily_fin_cn_out =  self.pooling(daily_fin_cn_out.transpose(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>)).squeeze(<span class="hljs-number">2</span>).repeat(seq_len, <span class="hljs-number">1</span>) <span class="hljs-comment"># seq_len * dim</span><br><br>        daily_tech_us_out = self.daily_tech_us_encoder(daily_tech_fea_us, daily_tech_ticker_us) <span class="hljs-comment"># seq_len * ticker_len * dim</span><br>        daily_tech_us_out =  self.pooling(daily_tech_us_out.transpose(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>)).squeeze(<span class="hljs-number">2</span>).repeat(seq_len, <span class="hljs-number">1</span>) <span class="hljs-comment"># seq_len * dim</span><br><br>        feature = torch.cat([time_out, intraday_tech_out1, intraday_tech_out2, daily_tech_cn_out, daily_fin_cn_out, daily_tech_us_out], dim=<span class="hljs-number">1</span>) <span class="hljs-comment"># seq_len * (dim * 6)</span><br><br>        output = self.classifier(feature)  <span class="hljs-comment"># seq_len * class_num</span><br>        <span class="hljs-keyword">return</span> output<br><br></code></pre></td></tr></table></figure>
+
+<p>在训练时，我们将2016-01-05～2022-08-12间的数据进行划分，保留25天的数据作为验证集不参与训练，仅用来评估模型的实际效果。</p>
+<h2 id="三、评估"><a href="#三、评估" class="headerlink" title="三、评估"></a>三、评估</h2><h3 id="3-1-相关性评估"><a href="#3-1-相关性评估" class="headerlink" title="3.1 相关性评估"></a>3.1 相关性评估</h3><p>计算预测结果和真实结果的皮尔逊相关系数，得到如下结果：</p>
+<ul>
+<li>整体相关性: 0.4319</li>
+<li>上证50: 0.3456</li>
+<li>沪深300: 0.4019</li>
+<li>中证500: 0.4439</li>
+<li>中证1000: 0.5015</li>
+</ul>
+<p>通常来说，相关系数的分级如下：</p>
+<ul>
+<li>极强相关: 0.8-1.0 </li>
+<li>中等程度相关: 0.4-0.6</li>
+<li>弱相关: 0.2-0.4</li>
+<li>极弱相关或无相关: 0.0-0.2</li>
+</ul>
+<p>因此，从预测难易的程度上看，随着股票规模的增大，预测难度是越来越小的，中证1000指数已经具备中等程度的可预测性！</p>
+<h3 id="3-2-具体案例分析"><a href="#3-2-具体案例分析" class="headerlink" title="3.2 具体案例分析"></a>3.2 具体案例分析</h3><p>我们以2022-08-12日当天，中证1000指数(000852.SH)的预测情况来分析，过滤出预测值大于1(涨幅大于千分之1)的记录，可以发现预测出的涨幅拐点有<code>2022-08-12 09:33:00</code>、<code>2022-08-12 10:14:00 </code>、<code>2022-08-12 10:27:00 </code>、<code>2022-08-12 10:34:00 </code>、<code>2022-08-12 11:16:00 </code>、<code>2022-08-12 13:12:00 </code>、<code>2022-08-12 13:18:00</code>、<code>2022-08-12 13:26:00</code>、<code>2022-08-12 13:48:00</code>、<code>2022-08-12 14:04:00</code>约10个，其中正向收益的有7个，因此，预测结果具有一定的利用价值。</p>
+<table>
+<thead>
+<tr>
+<th align="left">datetime</th>
+<th align="left">metric</th>
+<th align="right">label</th>
+<th align="right">prediction</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">2022-08-12 09:33:00</td>
+<td align="left">rolling_3_75</td>
+<td align="right">0.64</td>
+<td align="right">1.0458</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 09:33:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">2.14</td>
+<td align="right">1.2227</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 09:33:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">2.1</td>
+<td align="right">1.4303</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 09:44:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">0.4</td>
+<td align="right">1.1881</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 09:44:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">1.02</td>
+<td align="right">1.3878</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:14:00</td>
+<td align="left">rolling_3_75</td>
+<td align="right">0.53</td>
+<td align="right">1.0332</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:14:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">0.48</td>
+<td align="right">1.1049</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:14:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">0.24</td>
+<td align="right">1.204</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:27:00</td>
+<td align="left">rolling_3_75</td>
+<td align="right">0.53</td>
+<td align="right">1.0847</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:27:00</td>
+<td align="left">rolling_5_50</td>
+<td align="right">-0.01</td>
+<td align="right">1.0816</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:27:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">0.5</td>
+<td align="right">1.198</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:27:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">1.57</td>
+<td align="right">1.3889</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:34:00</td>
+<td align="left">rolling_3_50</td>
+<td align="right">1.15</td>
+<td align="right">1.0736</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:34:00</td>
+<td align="left">rolling_3_75</td>
+<td align="right">1.2</td>
+<td align="right">1.2097</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:34:00</td>
+<td align="left">rolling_5_50</td>
+<td align="right">0.81</td>
+<td align="right">1.1209</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:34:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">1.15</td>
+<td align="right">1.2745</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:34:00</td>
+<td align="left">rolling_10_50</td>
+<td align="right">0.42</td>
+<td align="right">1.0476</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:34:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">0.8</td>
+<td align="right">1.3831</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:35:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">0.34</td>
+<td align="right">1.0499</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:35:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">-0.1</td>
+<td align="right">1.1661</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 10:51:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">0.36</td>
+<td align="right">1.1327</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 11:16:00</td>
+<td align="left">rolling_3_75</td>
+<td align="right">0.45</td>
+<td align="right">1.0056</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 11:16:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">0.45</td>
+<td align="right">1.1815</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 11:16:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">0.41</td>
+<td align="right">1.363</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 11:17:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">0</td>
+<td align="right">1.055</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:12:00</td>
+<td align="left">rolling_5_50</td>
+<td align="right">-0.68</td>
+<td align="right">1.0252</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:12:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">-0.46</td>
+<td align="right">1.1361</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:12:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">0.23</td>
+<td align="right">1.2038</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:18:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">0.31</td>
+<td align="right">1.1185</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:18:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">1.42</td>
+<td align="right">1.1614</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:26:00</td>
+<td align="left">rolling_3_75</td>
+<td align="right">0.22</td>
+<td align="right">1.1489</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:26:00</td>
+<td align="left">rolling_5_50</td>
+<td align="right">-0.02</td>
+<td align="right">1.0274</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:26:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">0.19</td>
+<td align="right">1.233</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:26:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">-0.1</td>
+<td align="right">1.2839</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:33:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">0.52</td>
+<td align="right">1.0791</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:48:00</td>
+<td align="left">rolling_3_75</td>
+<td align="right">0.66</td>
+<td align="right">1.0106</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:48:00</td>
+<td align="left">rolling_5_50</td>
+<td align="right">0.79</td>
+<td align="right">1.0117</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:48:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">0.91</td>
+<td align="right">1.1305</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 13:48:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">0.79</td>
+<td align="right">1.3026</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 14:04:00</td>
+<td align="left">rolling_3_25</td>
+<td align="right">1.01</td>
+<td align="right">1.1566</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 14:04:00</td>
+<td align="left">rolling_3_50</td>
+<td align="right">1.13</td>
+<td align="right">1.3214</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 14:04:00</td>
+<td align="left">rolling_3_75</td>
+<td align="right">1.24</td>
+<td align="right">1.5201</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 14:04:00</td>
+<td align="left">rolling_5_25</td>
+<td align="right">0.93</td>
+<td align="right">1.2081</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 14:04:00</td>
+<td align="left">rolling_5_50</td>
+<td align="right">1.1</td>
+<td align="right">1.4657</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 14:04:00</td>
+<td align="left">rolling_5_75</td>
+<td align="right">1.13</td>
+<td align="right">1.5158</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 14:04:00</td>
+<td align="left">rolling_10_25</td>
+<td align="right">0.2</td>
+<td align="right">1.0725</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 14:04:00</td>
+<td align="left">rolling_10_50</td>
+<td align="right">0.84</td>
+<td align="right">1.3458</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 14:04:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">1.06</td>
+<td align="right">1.6887</td>
+</tr>
+<tr>
+<td align="left">2022-08-12 14:05:00</td>
+<td align="left">rolling_10_75</td>
+<td align="right">0.17</td>
+<td align="right">1.1434</td>
+</tr>
+</tbody></table>
+<h2 id="四、结论"><a href="#四、结论" class="headerlink" title="四、结论"></a>四、结论</h2><p>从预测结果来看，AI模型能够提供指数中高频的短期趋势指导，这为我们进一步优化模型提供了信心来源！在实战上，还需要解决实时性以及信号转化下单工作。大家如有观点看法，欢迎后台留言讨论！</p>
+<hr>
+<h4 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/PPduk4xPcix9USW9HmUpHw">利用pandas_ta自动提取技术面特征</a></li>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/4d6ihxZ7V73iSWUfyaz7tg">跨市场联动:基于美股隔日行情预测A股行业涨跌</a></li>
+</ul>
+<p>欢迎关注我的公众号“<strong>量化实战</strong>”，原创技术文章第一时间推送。<br><img src="/img/qrcode.jpg" srcset="/img/loading.gif" lazyload></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93/">量化交易</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/">深度学习</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E8%A1%8C%E6%83%85%E9%A2%84%E6%B5%8B/">行情预测</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">
+                  
+                    本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！
+                  
+                </p>
+              
+              
+                <div class="post-prevnext">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/08/02/%E8%BF%85%E6%8A%95QMT%E5%AE%9E%E6%97%B6%E8%A1%8C%E6%83%85%E6%8E%A5%E5%8F%A3%E6%8E%A5%E5%85%A5/">
+                        <span class="hidden-mobile">迅投QMT实时行情接口接入</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments" lazyload>
+                
+                  
+                
+                
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appKey":"ODqlMdJWwrMxHFHzfz3pMvBS","path":"window.location.pathname","placeholder":"说点什么","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":null,"emojiCDN":null,"emojiMaps":null,"enableQQ":false,"appid":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appkey":"ODqlMdJWwrMxHFHzfz3pMvBS"},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          Fluid.plugins.initFancyBox('#valine .vcontent img:not(.vemoji)');
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+  </main>
+
+  <footer class="text-center mt-5 py-3">
+  <div class="footer-content">
+     <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+  </div>
+  
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- LeanCloud 统计PV -->
+        <span id="leancloud-site-pv-container" style="display: none">
+            总访问量 
+            <span id="leancloud-site-pv"></span>
+             次
+          </span>
+      
+      
+        <!-- LeanCloud 统计UV -->
+        <span id="leancloud-site-uv-container" style="display: none">
+            总访客数 
+            <span id="leancloud-site-uv"></span>
+             人
+          </span>
+      
+
+    
+  </div>
+
+
+  
+  <!-- 备案信息 -->
+  <div class="beian">
+    <span>
+      <a href="http://beian.miit.gov.cn/" target="_blank" rel="nofollow noopener">
+        粤ICP备19097965号
+      </a>
+    </span>
+    
+  </div>
+
+
+  
+</footer>
+
+
+  <!-- SCRIPTS -->
+  
+  <script  src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" ></script>
+<script  src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+<!-- Plugins -->
+
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  
+    <script  src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js" ></script>
+  
+  
+    <script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js" ></script>
+  
+
+
+
+
+  <script defer src="/js/leancloud.js" ></script>
+
+
+
+  <script  src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var title = document.getElementById('subtitle').title;
+      
+        typing(title);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <!-- Baidu Analytics -->
+    <script defer>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?e2bacb4062644434b87a03658392592e";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+  
+
+  
+
+  
+    <!-- Google gtag.js -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YSYVRNN9T"></script>
+    <script defer>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-7YSYVRNN9T');
+    </script>
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+<!-- 主题的启动项 保持在最底部 -->
+<script  src="/js/boot.js" ></script>
+
+
+</body>
+</html>
