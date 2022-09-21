@@ -1,0 +1,617 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.jpg">
+  <link rel="icon" href="/img/favicon.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Keyun Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="本文介绍如何将xtquant的mini客户端的行情功能以Web服务的形式暴露出来供查询，并给出一个完整可运行的案例。  一、准备工作 开启客户端：XtMiniQmt.exe，可无需登录，可在云服务器中开启 安装python库 xtquant: 拷贝至使用的Python库中 sanic, aiohttp: web服务框架 akshare: 数据源封装接口 pandas-market-calenda">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于xtdata搭建实时行情请求服务">
+<meta property="og:url" content="https://keyunluo.github.io/2022/09/10/%E5%9F%BA%E4%BA%8Extdata%E6%90%AD%E5%BB%BA%E5%AE%9E%E6%97%B6%E8%A1%8C%E6%83%85%E8%AF%B7%E6%B1%82%E6%9C%8D%E5%8A%A1/index.html">
+<meta property="og:site_name" content="流光">
+<meta property="og:description" content="本文介绍如何将xtquant的mini客户端的行情功能以Web服务的形式暴露出来供查询，并给出一个完整可运行的案例。  一、准备工作 开启客户端：XtMiniQmt.exe，可无需登录，可在云服务器中开启 安装python库 xtquant: 拷贝至使用的Python库中 sanic, aiohttp: web服务框架 akshare: 数据源封装接口 pandas-market-calenda">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+<meta property="article:published_time" content="2022-09-10T00:00:00.000Z">
+<meta property="article:modified_time" content="2022-09-21T01:05:34.700Z">
+<meta property="article:author" content="Keyun Luo">
+<meta property="article:tag" content="迅投QMT">
+<meta property="article:tag" content="量化交易">
+<meta property="article:tag" content="行情接口">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+  
+  
+  <title>基于xtdata搭建实时行情请求服务 - 流光</title>
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/github-gist.min.css" />
+    
+  
+
+  
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    var CONFIG = {"hostname":"keyunluo.github.io","root":"/","version":"1.8.14","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"right","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"copy_btn":true,"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"baidu":"e2bacb4062644434b87a03658392592e","google":null,"gtag":"G-7YSYVRNN9T","tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","app_key":"ODqlMdJWwrMxHFHzfz3pMvBS","server_url":"https://nqndu9io.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+
+<body>
+  <header style="height: 30vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>博客</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner" id="banner" parallax=true
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="page-header text-center fade-in-up">
+            <span class="h2" id="subtitle" title="基于xtdata搭建实时行情请求服务">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2022-09-10 08:00" pubdate>
+        2022年9月10日 早上
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      6.4k 字
+    </span>
+  
+
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      54 分钟
+    </span>
+  
+
+  
+  
+    
+      <!-- LeanCloud 统计文章PV -->
+      <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+        <i class="iconfont icon-eye" aria-hidden="true"></i>
+        <span id="leancloud-page-views"></span> 次
+      </span>
+    
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">基于xtdata搭建实时行情请求服务</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2022年9月21日 上午
+                
+              </p>
+            
+            <div class="markdown-body">
+              <blockquote>
+<p>本文介绍如何将xtquant的mini客户端的行情功能以Web服务的形式暴露出来供查询，并给出一个完整可运行的案例。</p>
+</blockquote>
+<h2 id="一、准备工作"><a href="#一、准备工作" class="headerlink" title="一、准备工作"></a>一、准备工作</h2><ul>
+<li>开启客户端：XtMiniQmt.exe，可无需登录，可在云服务器中开启</li>
+<li>安装python库<ul>
+<li>xtquant: 拷贝至使用的Python库中</li>
+<li>sanic, aiohttp: web服务框架</li>
+<li>akshare: 数据源封装接口</li>
+<li>pandas-market-calendars: 交易所日历</li>
+<li>pandas: 数据分析工具</li>
+</ul>
+</li>
+</ul>
+<h2 id="二、程序启动"><a href="#二、程序启动" class="headerlink" title="二、程序启动"></a>二、程序启动</h2><p>在sanic中，我们可以建立一个监听器，在程序启动前执行一些全局化的操作, 这里我们可以将订阅全推市场行情放到这里，这样的话每次启动都会自动执行，订阅时返回一个订阅ID，为了避免内存泄漏，在程序结束时我们要记得使用unsubscribe_quote接口将这些订阅取消。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></div></td><td class="code"><pre><code class="hljs python"><span class="hljs-meta">@api.listener(<span class="hljs-params"><span class="hljs-string">&#x27;before_server_start&#x27;</span></span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">before_server_start</span>(<span class="hljs-params">app, loop</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;全局共享session&#x27;&#x27;&#x27;</span><br>    <span class="hljs-keyword">global</span> session, subscribe_ids, hs300_component, csi500_component, csi1000_component<br>    jar = aiohttp.CookieJar(unsafe=<span class="hljs-literal">True</span>)<br>    session = aiohttp.ClientSession(cookie_jar=jar, connector=aiohttp.TCPConnector(ssl=<span class="hljs-literal">False</span>))<br>    subscribe_ids = []<br>    subscribe_ids.append(xtdata.subscribe_whole_quote([<span class="hljs-string">&#x27;SH&#x27;</span>, <span class="hljs-string">&#x27;SZ&#x27;</span>, <span class="hljs-string">&#x27;SHO&#x27;</span>, <span class="hljs-string">&#x27;SZO&#x27;</span>, <span class="hljs-string">&#x27;HK&#x27;</span>, <span class="hljs-string">&#x27;IF&#x27;</span>, <span class="hljs-string">&#x27;ZF&#x27;</span>, <span class="hljs-string">&#x27;DF&#x27;</span>, <span class="hljs-string">&#x27;SF&#x27;</span>]))<br>    hs300_component, csi500_component, csi1000_component = get_a_index_component()<br><br><span class="hljs-meta">@api.listener(<span class="hljs-params"><span class="hljs-string">&#x27;after_server_stop&#x27;</span></span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">after_server_stop</span>(<span class="hljs-params">app, loop</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;关闭session&#x27;&#x27;&#x27;</span><br>    <span class="hljs-keyword">for</span> seq_num <span class="hljs-keyword">in</span> subscribe_ids:<br>        xtdata.unsubscribe_quote(seq_num)<br>    <span class="hljs-keyword">await</span> session.close()<br></code></pre></td></tr></table></figure>
+
+<h2 id="三、关键功能"><a href="#三、关键功能" class="headerlink" title="三、关键功能"></a>三、关键功能</h2><h3 id="3-1-行情订阅"><a href="#3-1-行情订阅" class="headerlink" title="3.1 行情订阅"></a>3.1 行情订阅</h3><p>对单个标的，我们使用订阅的方式，可获取tick/kline行情：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/subscribe&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">subscribe</span>(<span class="hljs-params">request, ticker_input=<span class="hljs-string">&#x27;&#x27;</span></span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    订阅单股行情: 获得tick/kline行情</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    <span class="hljs-keyword">if</span> ticker_input == <span class="hljs-string">&#x27;&#x27;</span>:<br>        ticker = request.args.get(<span class="hljs-string">&quot;ticker&quot;</span>, <span class="hljs-string">&quot;000001.SH&quot;</span>)<br>    <span class="hljs-keyword">else</span>:<br>        ticker = ticker_input<br>    period = request.args.get(<span class="hljs-string">&quot;period&quot;</span>, <span class="hljs-string">&quot;1m&quot;</span>)<br>    start_time = request.args.get(<span class="hljs-string">&quot;start_time&quot;</span>, <span class="hljs-string">&quot;&quot;</span>)<br>    end_time = request.args.get(<span class="hljs-string">&quot;end_time&quot;</span>, <span class="hljs-string">&quot;&quot;</span>)<br>    subscribe_ids.append(xtdata.subscribe_quote(ticker, period, start_time=start_time, end_time=end_time, count=<span class="hljs-number">10</span>))<br>    <span class="hljs-keyword">if</span> ticker_input == <span class="hljs-string">&#x27;&#x27;</span>:<br>        <span class="hljs-keyword">return</span> response.json(&#123;<span class="hljs-string">&quot;data&quot;</span>: subscribe_ids[-<span class="hljs-number">1</span>]&#125;)<br>    <span class="hljs-keyword">else</span>:<br>        <span class="hljs-keyword">return</span> &#123;<span class="hljs-string">&quot;data&quot;</span>: subscribe_ids[-<span class="hljs-number">1</span>]&#125;<br></code></pre></td></tr></table></figure>
+
+<p>进一步的，我们可以传入预定义的股票池，如沪深300成分股，批量订阅：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/subscribe/kline/hs300&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">quote_kline_hs300</span>(<span class="hljs-params">request</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    订阅市场行情: 沪深300成分股1分钟K线行情</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    seq_ids = []<br>    <span class="hljs-keyword">for</span> ticker <span class="hljs-keyword">in</span> hs300_component:<br>       seq_id =  <span class="hljs-keyword">await</span> subscribe(request, ticker_input=ticker)<br>       seq_ids.append(seq_id.get(<span class="hljs-string">&#x27;data&#x27;</span>, -<span class="hljs-number">1</span>))<br>    <span class="hljs-keyword">return</span> response.json(&#123;<span class="hljs-string">&quot;data&quot;</span>: seq_ids&#125;)<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-2-K线行情查询"><a href="#3-2-K线行情查询" class="headerlink" title="3.2 K线行情查询"></a>3.2 K线行情查询</h3><p>利用<code>get_market_data</code>接口，我们读取价格和成交量等数据，然后对每个股票组装成一个DataFrame结构：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/quote/kline&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">quote_kline</span>(<span class="hljs-params">request, tickers=<span class="hljs-string">&#x27;&#x27;</span></span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    查询市场行情: 获得kline数据</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    <span class="hljs-keyword">if</span> tickers == <span class="hljs-string">&#x27;&#x27;</span>:<br>        tickers = request.args.get(<span class="hljs-string">&quot;tickers&quot;</span>, <span class="hljs-string">&quot;IM00.IF,159919.SZ,00700.HK,10004407.SHO&quot;</span>)<br>    period = request.args.get(<span class="hljs-string">&quot;period&quot;</span>, <span class="hljs-string">&quot;1m&quot;</span>)<br>    start_time = request.args.get(<span class="hljs-string">&quot;start_time&quot;</span>, <span class="hljs-string">&quot;&quot;</span>)<br>    end_time = request.args.get(<span class="hljs-string">&quot;end_time&quot;</span>, <span class="hljs-string">&quot;&quot;</span>)<br>    count = request.args.get(<span class="hljs-string">&quot;count&quot;</span>, <span class="hljs-string">&quot;1&quot;</span>)<br>    dividend_type = request.args.get(<span class="hljs-string">&quot;dividend_type&quot;</span>, <span class="hljs-string">&quot;none&quot;</span>) <span class="hljs-comment"># none 不复权 front 前复权 back 后复权 front_ratio 等比前复权 back_ratio 等比后复权</span><br>    stock_list = tickers.split(<span class="hljs-string">&#x27;,&#x27;</span>)<br><br>    kline_data = xtdata.get_market_data(field_list=[<span class="hljs-string">&#x27;time&#x27;</span>, <span class="hljs-string">&#x27;open&#x27;</span>, <span class="hljs-string">&#x27;high&#x27;</span>, <span class="hljs-string">&#x27;low&#x27;</span>, <span class="hljs-string">&#x27;close&#x27;</span>, <span class="hljs-string">&#x27;volume&#x27;</span>, <span class="hljs-string">&#x27;amount&#x27;</span>], stock_list=stock_list, period=period, start_time=start_time, end_time=end_time, count=<span class="hljs-built_in">int</span>(count), dividend_type=dividend_type, fill_data=<span class="hljs-literal">True</span>)<br><br>    quote_data = &#123;&#125;<br>    <span class="hljs-keyword">for</span> stock <span class="hljs-keyword">in</span> stock_list:<br>        df = pd.concat([kline_data[i].loc[stock].T <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> [<span class="hljs-string">&#x27;time&#x27;</span>, <span class="hljs-string">&#x27;open&#x27;</span>, <span class="hljs-string">&#x27;high&#x27;</span>, <span class="hljs-string">&#x27;low&#x27;</span>, <span class="hljs-string">&#x27;close&#x27;</span>, <span class="hljs-string">&#x27;volume&#x27;</span>, <span class="hljs-string">&#x27;amount&#x27;</span>]], axis=<span class="hljs-number">1</span>)<br>        df.columns = [<span class="hljs-string">&#x27;time&#x27;</span>, <span class="hljs-string">&#x27;open&#x27;</span>, <span class="hljs-string">&#x27;high&#x27;</span>, <span class="hljs-string">&#x27;low&#x27;</span>, <span class="hljs-string">&#x27;close&#x27;</span>, <span class="hljs-string">&#x27;volume&#x27;</span>, <span class="hljs-string">&#x27;amount&#x27;</span>]<br>        df = df[df.volume !=<span class="hljs-number">0</span>]<br>        df[<span class="hljs-string">&#x27;time&#x27;</span>] = df[<span class="hljs-string">&#x27;time&#x27;</span>].apply(<span class="hljs-keyword">lambda</span> x: datetime.datetime.fromtimestamp(x / <span class="hljs-number">1000.0</span>).strftime(<span class="hljs-string">&quot;%Y-%m-%d %H:%M:%S&quot;</span>))<br>        df[<span class="hljs-string">&#x27;ticker&#x27;</span>] = stock<br>        df = df[[<span class="hljs-string">&#x27;ticker&#x27;</span>, <span class="hljs-string">&#x27;time&#x27;</span>, <span class="hljs-string">&#x27;open&#x27;</span>, <span class="hljs-string">&#x27;high&#x27;</span>, <span class="hljs-string">&#x27;low&#x27;</span>, <span class="hljs-string">&#x27;close&#x27;</span>, <span class="hljs-string">&#x27;volume&#x27;</span>, <span class="hljs-string">&#x27;amount&#x27;</span>]].values.tolist() <br>        quote_data[stock] = df<br><br>    <span class="hljs-keyword">return</span> response.json(&#123;<span class="hljs-string">&quot;data&quot;</span>: quote_data&#125;)<br></code></pre></td></tr></table></figure>
+
+<p>基于上面的实现，我们可以直接将沪深300股票的查询做进一步封装：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/quote/kline/hs300&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">quote_kline_hs300</span>(<span class="hljs-params">request</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    查询市场行情: 沪深300成分股1分钟K线行情</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    <span class="hljs-keyword">return</span> <span class="hljs-keyword">await</span> quote_kline(request, <span class="hljs-string">&#x27;,&#x27;</span>.join(<span class="hljs-built_in">list</span>(hs300_component)))<br></code></pre></td></tr></table></figure>
+
+
+<h3 id="3-3-Tick行情查询"><a href="#3-3-Tick行情查询" class="headerlink" title="3.3 Tick行情查询"></a>3.3 Tick行情查询</h3><p>由于订阅了全推行情，因此获取tick数据可直接使用<code>get_full_tick</code>接口：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-meta">@api.route(<span class="hljs-params"><span class="hljs-string">&#x27;/quote/tick&#x27;</span>, methods=[<span class="hljs-string">&#x27;GET&#x27;</span>]</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">quote_tick</span>(<span class="hljs-params">request</span>):</span><br>    <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">    查询市场行情: 获得tick数据</span><br><span class="hljs-string">    &#x27;&#x27;&#x27;</span><br>    tickers = request.args.get(<span class="hljs-string">&quot;tickers&quot;</span>, <span class="hljs-string">&quot;159919.SZ,00700.HK&quot;</span>)<br>    stock_list = tickers.split(<span class="hljs-string">&#x27;,&#x27;</span>)<br>    data = xtdata.get_full_tick(stock_list)<br>    <span class="hljs-keyword">return</span> response.json(&#123;<span class="hljs-string">&quot;data&quot;</span>: data&#125;)<br><br></code></pre></td></tr></table></figure>
+
+<h2 id="四、功能测试"><a href="#四、功能测试" class="headerlink" title="四、功能测试"></a>四、功能测试</h2><p>启动程序，即运行<code>python app_xtdata.py</code>后，我们便可以使用<code>requests</code>库或浏览器访问数据了,<br>base_url = ‘<a target="_blank" rel="noopener" href="http://172.16.0.4:7800/api/xtdata&#39;">http://172.16.0.4:7800/api/xtdata&#39;</a></p>
+<ul>
+<li>订阅沪深300： base_url + /subscribe/kline/hs300</li>
+<li>查询沪深300成份股实时行情：base_url + /quote/kline/hs300<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(base_url + <span class="hljs-string">&#x27;/quote/kline/hs300&#x27;</span>).json()<br><span class="hljs-built_in">print</span>(data[<span class="hljs-string">&#x27;data&#x27;</span>][<span class="hljs-string">&#x27;600941.SH&#x27;</span>])<br>[[<span class="hljs-string">&#x27;600941.SH&#x27;</span>, <span class="hljs-string">&#x27;2022-09-09 15:00:00&#x27;</span>, <span class="hljs-number">65.31</span>, <span class="hljs-number">65.37</span>, <span class="hljs-number">65.31</span>, <span class="hljs-number">65.37</span>, <span class="hljs-number">192</span>, <span class="hljs-number">1255104.0</span>]]<br></code></pre></td></tr></table></figure></li>
+<li>查询tick快照行情：base_url + /quote/tick?tickers=159919.SZ,510050.SH</li>
+<li>查询合约基础信息：base_url + /quote/instrument/detail?ticker=510300.SH<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs python">&#123;<span class="hljs-string">&#x27;data&#x27;</span>: &#123;<span class="hljs-string">&#x27;ExchangeID&#x27;</span>: <span class="hljs-string">&#x27;SH&#x27;</span>,<br><span class="hljs-string">&#x27;InstrumentID&#x27;</span>: <span class="hljs-string">&#x27;510300&#x27;</span>,<br><span class="hljs-string">&#x27;InstrumentName&#x27;</span>: <span class="hljs-string">&#x27;沪深300ETF&#x27;</span>,<br><span class="hljs-string">&#x27;ProductID&#x27;</span>: <span class="hljs-literal">None</span>,<br><span class="hljs-string">&#x27;ProductName&#x27;</span>: <span class="hljs-literal">None</span>,<br><span class="hljs-string">&#x27;CreateDate&#x27;</span>: <span class="hljs-string">&#x27;0&#x27;</span>,<br><span class="hljs-string">&#x27;OpenDate&#x27;</span>: <span class="hljs-string">&#x27;20120528&#x27;</span>,<br><span class="hljs-string">&#x27;ExpireDate&#x27;</span>: <span class="hljs-number">99999999</span>,<br><span class="hljs-string">&#x27;PreClose&#x27;</span>: <span class="hljs-number">4.101</span>,<br><span class="hljs-string">&#x27;SettlementPrice&#x27;</span>: <span class="hljs-number">4.101</span>,<br><span class="hljs-string">&#x27;UpStopPrice&#x27;</span>: <span class="hljs-number">4.511</span>,<br><span class="hljs-string">&#x27;DownStopPrice&#x27;</span>: <span class="hljs-number">3.691</span>,<br><span class="hljs-string">&#x27;FloatVolume&#x27;</span>: <span class="hljs-number">10836487700.0</span>,<br><span class="hljs-string">&#x27;TotalVolume&#x27;</span>: <span class="hljs-number">10836487700.0</span>,<br><span class="hljs-string">&#x27;LongMarginRatio&#x27;</span>: <span class="hljs-literal">None</span>,<br><span class="hljs-string">&#x27;ShortMarginRatio&#x27;</span>: <span class="hljs-literal">None</span>,<br><span class="hljs-string">&#x27;PriceTick&#x27;</span>: <span class="hljs-number">0.001</span>,<br><span class="hljs-string">&#x27;VolumeMultiple&#x27;</span>: <span class="hljs-number">1</span>,<br><span class="hljs-string">&#x27;MainContract&#x27;</span>: <span class="hljs-literal">None</span>,<br><span class="hljs-string">&#x27;LastVolume&#x27;</span>: <span class="hljs-literal">None</span>,<br><span class="hljs-string">&#x27;InstrumentStatus&#x27;</span>: <span class="hljs-number">0</span>,<br><span class="hljs-string">&#x27;IsTrading&#x27;</span>: <span class="hljs-literal">None</span>,<br><span class="hljs-string">&#x27;IsRecent&#x27;</span>: <span class="hljs-literal">None</span>&#125;&#125;<br></code></pre></td></tr></table></figure></li>
+</ul>
+<p>至此，我们完成了行情服务的Web封装，下篇将继续介绍如何在实时行情的基础上提取实时的技术面特征，搭建实时量化交易系统。完整可运行程序请点击阅读原文获取。</p>
+<h4 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/cWYXulT-daBgrDtr36CHAA">迅投QMT实时行情接口接入</a></li>
+</ul>
+<hr>
+<p>欢迎关注我的公众号“<strong>量化实战</strong>”，原创技术文章第一时间推送。</p>
+<p><img src="/img/qrcode.jpg" srcset="/img/loading.gif" lazyload></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E8%BF%85%E6%8A%95QMT/">迅投QMT</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93/">量化交易</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E8%A1%8C%E6%83%85%E6%8E%A5%E5%8F%A3/">行情接口</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">
+                  
+                    本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！
+                  
+                </p>
+              
+              
+                <div class="post-prevnext">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2022/09/11/%E5%9F%BA%E4%BA%8Extdata%E5%AE%9E%E6%97%B6%E8%A1%8C%E6%83%85%E7%94%9F%E6%88%90%E6%8A%80%E6%9C%AF%E5%9B%A0%E5%AD%90/">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">基于xtdata实时行情生成技术因子</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/08/18/%E6%8C%87%E6%95%B0%E8%A1%8C%E6%83%85%E4%B8%AD%E9%AB%98%E9%A2%91%E9%A2%84%E6%B5%8B%E5%92%8C%E5%8F%AF%E9%9D%A0%E6%80%A7%E8%AF%84%E4%BC%B0/">
+                        <span class="hidden-mobile">指数中高频行情预测和可靠性评估</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments" lazyload>
+                
+                  
+                
+                
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appKey":"ODqlMdJWwrMxHFHzfz3pMvBS","path":"window.location.pathname","placeholder":"说点什么","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":null,"emojiCDN":null,"emojiMaps":null,"enableQQ":false,"appid":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appkey":"ODqlMdJWwrMxHFHzfz3pMvBS"},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          Fluid.plugins.initFancyBox('#valine .vcontent img:not(.vemoji)');
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+  </main>
+
+  <footer class="text-center mt-5 py-3">
+  <div class="footer-content">
+     <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+  </div>
+  
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- LeanCloud 统计PV -->
+        <span id="leancloud-site-pv-container" style="display: none">
+            总访问量 
+            <span id="leancloud-site-pv"></span>
+             次
+          </span>
+      
+      
+        <!-- LeanCloud 统计UV -->
+        <span id="leancloud-site-uv-container" style="display: none">
+            总访客数 
+            <span id="leancloud-site-uv"></span>
+             人
+          </span>
+      
+
+    
+  </div>
+
+
+  
+  <!-- 备案信息 -->
+  <div class="beian">
+    <span>
+      <a href="http://beian.miit.gov.cn/" target="_blank" rel="nofollow noopener">
+        粤ICP备19097965号
+      </a>
+    </span>
+    
+  </div>
+
+
+  
+</footer>
+
+
+  <!-- SCRIPTS -->
+  
+  <script  src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" ></script>
+<script  src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+<!-- Plugins -->
+
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  
+    <script  src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js" ></script>
+  
+  
+    <script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js" ></script>
+  
+
+
+
+
+  <script defer src="/js/leancloud.js" ></script>
+
+
+
+  <script  src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var title = document.getElementById('subtitle').title;
+      
+        typing(title);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <!-- Baidu Analytics -->
+    <script defer>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?e2bacb4062644434b87a03658392592e";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+  
+
+  
+
+  
+    <!-- Google gtag.js -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YSYVRNN9T"></script>
+    <script defer>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-7YSYVRNN9T');
+    </script>
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+<!-- 主题的启动项 保持在最底部 -->
+<script  src="/js/boot.js" ></script>
+
+
+</body>
+</html>
