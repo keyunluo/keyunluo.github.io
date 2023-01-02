@@ -1,0 +1,599 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.jpg">
+  <link rel="icon" href="/img/favicon.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Keyun Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="Bert模型自2018年问世至今，在自然语言处理、多模态技术上显示出强大的实力，在金融领域中的文本理解、知识图谱等领域也显示出强大的应用前景。本文介绍如何在金融文本中微调自己的Bert模型，并进行精简，进而自动生成新闻因子，供下游预测任务使用。相关模型、数据集以及代码见文末分享。  金融新闻数据采集推特、WSJ、联合早报、财联社等新闻具有较高的利用价值，这里主要介绍财联社的新闻数据获取方法。 打">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于金融新闻数据的BERT模型微调和降维">
+<meta property="og:url" content="https://keyunluo.github.io/2023/01/02/%E5%9F%BA%E4%BA%8E%E9%87%91%E8%9E%8D%E6%96%B0%E9%97%BB%E6%95%B0%E6%8D%AE%E7%9A%84BERT%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E5%92%8C%E9%99%8D%E7%BB%B4/index.html">
+<meta property="og:site_name" content="流光">
+<meta property="og:description" content="Bert模型自2018年问世至今，在自然语言处理、多模态技术上显示出强大的实力，在金融领域中的文本理解、知识图谱等领域也显示出强大的应用前景。本文介绍如何在金融文本中微调自己的Bert模型，并进行精简，进而自动生成新闻因子，供下游预测任务使用。相关模型、数据集以及代码见文末分享。  金融新闻数据采集推特、WSJ、联合早报、财联社等新闻具有较高的利用价值，这里主要介绍财联社的新闻数据获取方法。 打">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://keyunluo.github.io/2023/01/02/img/cls.png">
+<meta property="og:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+<meta property="article:published_time" content="2023-01-02T10:00:00.000Z">
+<meta property="article:modified_time" content="2023-01-02T10:45:28.041Z">
+<meta property="article:author" content="Keyun Luo">
+<meta property="article:tag" content="新闻事件">
+<meta property="article:tag" content="量化策略">
+<meta property="article:tag" content="BERT预训练">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://keyunluo.github.io/2023/01/02/img/cls.png">
+  
+  
+  <title>基于金融新闻数据的BERT模型微调和降维 - 流光</title>
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/github-gist.min.css" />
+    
+  
+
+  
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    var CONFIG = {"hostname":"keyunluo.github.io","root":"/","version":"1.8.14","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"right","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"copy_btn":true,"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"baidu":"e2bacb4062644434b87a03658392592e","google":null,"gtag":"G-7YSYVRNN9T","tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","app_key":"ODqlMdJWwrMxHFHzfz3pMvBS","server_url":"https://nqndu9io.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+
+<body>
+  <header style="height: 30vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>博客</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner" id="banner" parallax=true
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="page-header text-center fade-in-up">
+            <span class="h2" id="subtitle" title="基于金融新闻数据的BERT模型微调和降维">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2023-01-02 18:00" pubdate>
+        2023年1月2日 晚上
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      5.1k 字
+    </span>
+  
+
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      43 分钟
+    </span>
+  
+
+  
+  
+    
+      <!-- LeanCloud 统计文章PV -->
+      <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+        <i class="iconfont icon-eye" aria-hidden="true"></i>
+        <span id="leancloud-page-views"></span> 次
+      </span>
+    
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">基于金融新闻数据的BERT模型微调和降维</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2023年1月2日 晚上
+                
+              </p>
+            
+            <div class="markdown-body">
+              <blockquote>
+<p>Bert模型自2018年问世至今，在自然语言处理、多模态技术上显示出强大的实力，在金融领域中的文本理解、知识图谱等领域也显示出强大的应用前景。本文介绍如何在金融文本中微调自己的Bert模型，并进行精简，进而自动生成新闻因子，供下游预测任务使用。相关模型、数据集以及代码见文末分享。</p>
+</blockquote>
+<h2 id="金融新闻数据采集"><a href="#金融新闻数据采集" class="headerlink" title="金融新闻数据采集"></a>金融新闻数据采集</h2><p>推特、WSJ、联合早报、财联社等新闻具有较高的利用价值，这里主要介绍财联社的新闻数据获取方法。</p>
+<p>打开网址：<code>https://www.cls.cn/telegraph</code>, 在chrome浏览器中按下F12键，点击<code>Network</code>，然后刷新一下网页，便能找到后端请求的资源：<br><img src="../img/cls.png" srcset="/img/loading.gif" lazyload></p>
+<p>这里比较重要的是请求资源实际进行了简单加密，导致修改了时间参数后无法正常访问。以截图中的为例，需要使用hashlib进行sign签名的编码，具体代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></div></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> hashlib<br><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">_md5</span>(<span class="hljs-params">data</span>):</span><br>    <span class="hljs-keyword">return</span> hashlib.md5(data.encode()).hexdigest()<br><br><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">_sha1</span>(<span class="hljs-params">data</span>):</span><br>    <span class="hljs-keyword">return</span> hashlib.sha1(data.encode()).hexdigest()<br><br><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_sign</span>(<span class="hljs-params">data</span>):</span><br>    data = _sha1(data)<br>    data = _md5(data)<br>    <span class="hljs-keyword">return</span> data<br><br>data = <span class="hljs-string">&#x27;app=CailianpressWeb&amp;category=&amp;lastTime=1672646359&amp;last_time=1672646359&amp;os=web&amp;refresh_type=1&amp;rn=20&amp;sv=7.7.5&#x27;</span><br>url = <span class="hljs-string">&#x27;https://www.cls.cn/nodeapi/telegraphList?&#x27;</span> + data + <span class="hljs-string">&quot;&amp;sign=&quot;</span> + get_sign(data)<br><span class="hljs-keyword">assert</span>(get_sign(data) == <span class="hljs-string">&quot;5dd63d63e612d3a3746ef97e233aeb41&quot;</span>)<br></code></pre></td></tr></table></figure>
+
+<p>解决上面的签名问题后，便可以按照普通爬虫的方式，填充header等字段，获取任意时间段内的20条新闻数据了，并传入时间参数补齐历史数据：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> requests, time, datetime<br><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_cls_data</span>(<span class="hljs-params">timestamp=<span class="hljs-literal">None</span></span>):</span><br>    <span class="hljs-keyword">if</span> timestamp <span class="hljs-keyword">is</span> <span class="hljs-literal">None</span>:<br>        timestamp = <span class="hljs-built_in">int</span>(time.time())<br>    <span class="hljs-keyword">else</span>:<br>        timestamp = <span class="hljs-built_in">int</span>(timestamp)<br>    headers = &#123;<span class="hljs-string">&quot;Content-Type&quot;</span>: <span class="hljs-string">&quot;application/json;charset=utf-8&quot;</span>, <span class="hljs-string">&quot;Referer&quot;</span>: <span class="hljs-string">&quot;https://www.cls.cn/telegraph&quot;</span>, <span class="hljs-string">&quot;User-Agent&quot;</span>: <span class="hljs-string">&quot;Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36&quot;</span>&#125;<br>    data = <span class="hljs-string">&#x27;app=CailianpressWeb&amp;category=&amp;lastTime=&#123;&#125;&amp;last_time=&#123;&#125;&amp;os=web&amp;refresh_type=1&amp;rn=20&amp;sv=7.7.5&#x27;</span>.<span class="hljs-built_in">format</span>(timestamp, timestamp)<br>    url = <span class="hljs-string">&#x27;https://www.cls.cn/nodeapi/telegraphList?&#x27;</span> + data + <span class="hljs-string">&quot;&amp;sign=&quot;</span> + get_sign(data)<br>    resp = requests.get(url, headers=headers)<br>    <span class="hljs-keyword">return</span> resp.json()<br><br><span class="hljs-built_in">print</span>(get_cls_data(timestamp=datetime.datetime.fromisoformat(<span class="hljs-string">&#x27;2023-01-01 00:00:00&#x27;</span>).timestamp()))<br></code></pre></td></tr></table></figure>
+
+<h2 id="Bert模型微调"><a href="#Bert模型微调" class="headerlink" title="Bert模型微调"></a>Bert模型微调</h2><p>目前开源出来的中文金融领域预训练模型有：</p>
+<ul>
+<li>熵简科技FinBERT: <a target="_blank" rel="noopener" href="https://github.com/valuesimplex/FinBERT">https://github.com/valuesimplex/FinBERT</a>, 国内首个在金融领域大规模语料上训练的开源中文BERT预训练模型</li>
+<li>澜舟科技Mengzi: <a target="_blank" rel="noopener" href="https://github.com/Langboat/Mengzi">https://github.com/Langboat/Mengzi</a>, 金融领域的自然语言理解类任务</li>
+</ul>
+<p>这里我们在Mengzi模型上进行进一步的微调：</p>
+<ul>
+<li>下载模型至本地：<a target="_blank" rel="noopener" href="https://huggingface.co/Langboat/mengzi-bert-base-fin/tree/main">https://huggingface.co/Langboat/mengzi-bert-base-fin/tree/main</a> ，加载到SentenceTransformer框架中，见代码load_model模块</li>
+<li>载入金融文本数据集：每行一个新闻文本，见代码load_sentence模块</li>
+<li>训练BERT模型：见代码train模块，TSDAE相比MLM、SimCSE等无监督任务效果更优(<a target="_blank" rel="noopener" href="https://www.sbert.net/examples/unsupervised_learning/README.html">https://www.sbert.net/examples/unsupervised_learning/README.html</a>)</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 载入预训练好的模型</span><br><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">load_model</span>(<span class="hljs-params">model_name=<span class="hljs-string">&#x27;Langboat/mengzi-bert-base-fin&#x27;</span>, max_seq_length=<span class="hljs-number">128</span></span>):</span><br>    word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)<br>    pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), <span class="hljs-string">&#x27;mean&#x27;</span>) <br>    model = SentenceTransformer(modules=[word_embedding_model, pooling_model])<br>    <span class="hljs-keyword">return</span> model<br><br><span class="hljs-comment"># 载入我们自己的数据集，每行一个文本</span><br><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">load_sentence</span>(<span class="hljs-params">filepath=<span class="hljs-string">&#x27;&#x27;</span></span>):</span><br>    sentences = []<br>    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(filepath, encoding=<span class="hljs-string">&#x27;utf8&#x27;</span>) <span class="hljs-keyword">as</span> fIn:<br>        <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> tqdm(fIn, desc=<span class="hljs-string">&#x27;Read file&#x27;</span>):<br>            line = line.strip()<br>            <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(line) &gt;= <span class="hljs-number">8</span>:<br>                sentences.append(line)<br>    <span class="hljs-keyword">return</span> sentences<br><br><span class="hljs-comment"># 训练TSDAE模型</span><br><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">train</span>(<span class="hljs-params">news_txt=<span class="hljs-string">&quot;news.txt&quot;</span>, model_location=<span class="hljs-string">&quot;Langboat/mengzi-bert-base-fin&quot;</span>, model_output_path= <span class="hljs-string">&#x27;tsdae&#x27;</span></span>):</span><br>    model = load_model(model_name=model_location)<br>    sentences = load_sentence(filepath=news_txt)<br>    <br>    train_dataset = datasets.DenoisingAutoEncoderDataset(sentences)<br>    train_dataloader = DataLoader(train_dataset, batch_size=<span class="hljs-number">128</span>, shuffle=<span class="hljs-literal">True</span>, drop_last=<span class="hljs-literal">True</span>, num_workers=<span class="hljs-number">16</span>)<br>    <br>    train_loss = losses.DenoisingAutoEncoderLoss(model, decoder_name_or_path=model_location, tie_encoder_decoder=<span class="hljs-literal">True</span>)<br><br>    model.fit(<br>        train_objectives=[(train_dataloader, train_loss)],<br>        epochs=<span class="hljs-number">10</span>,<br>        weight_decay=<span class="hljs-number">0</span>,<br>        scheduler=<span class="hljs-string">&#x27;constantlr&#x27;</span>,<br>        optimizer_params=&#123;<span class="hljs-string">&#x27;lr&#x27;</span>: <span class="hljs-number">4e-5</span>&#125;,<br>        show_progress_bar=<span class="hljs-literal">True</span>,<br>        checkpoint_path=model_output_path,<br>        use_amp=<span class="hljs-literal">True</span>,<br>        checkpoint_save_steps=<span class="hljs-number">5000</span><br>    )<br><br></code></pre></td></tr></table></figure>
+
+<h2 id="Bert模型降维"><a href="#Bert模型降维" class="headerlink" title="Bert模型降维"></a>Bert模型降维</h2><p>Bert原生的输出维度为768，复杂度略高，最新的研究表明，借助<code>Bert-whitening</code>思路，可以在少量精度损失的情况下，使用降维技术获得更精简的句向量表达。基本的思路是，对所要编码的句子文本，首先编码成bert句向量，然后使用PCA进行降维，获取转换权重，然后把这权重嫁接到原始Bert的输出层上，这样我们就能直接获取简化后的Bert输出了，代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">pca</span>(<span class="hljs-params">file=<span class="hljs-string">&quot;cls.txt&quot;</span>, new_dimension = <span class="hljs-number">128</span></span>):</span><br>    sentences = load_sentence(filepath=file)<br>    random.shuffle(sentences)<br>    <br>    model = SentenceTransformer(<span class="hljs-string">&#x27;./tsdae&#x27;</span>)<br>    device = torch.device(<span class="hljs-string">&quot;cuda&quot;</span> <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-string">&quot;cpu&quot;</span>)<br>    model = model.to(device)<br><br>    embeddings = model.encode(sentences, convert_to_numpy=<span class="hljs-literal">True</span>, show_progress_bar=<span class="hljs-literal">True</span>)<br><br>    pca = PCA(n_components=new_dimension)<br>    pca.fit(embeddings)<br>    pca_comp = np.asarray(pca.components_)<br><br>    dense = models.Dense(in_features=model.get_sentence_embedding_dimension(), out_features=new_dimension, bias=<span class="hljs-literal">False</span>, activation_function=torch.nn.Identity())<br>    dense.linear.weight = torch.nn.Parameter(torch.tensor(pca_comp))<br>    model.add_module(<span class="hljs-string">&#x27;dense&#x27;</span>, dense)<br><br>    model.save(<span class="hljs-string">&#x27;tsdae-pca-128&#x27;</span>)<br></code></pre></td></tr></table></figure>
+
+<h2 id="下游任务应用"><a href="#下游任务应用" class="headerlink" title="下游任务应用"></a>下游任务应用</h2><p>微调和降维后，我们便可以利用其理解能力对任意一段文本进行编码，输出固定维度的向量：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python">bert_encoder = SentenceTransformer(bert_dir, device=device)<br>titles = [<span class="hljs-string">&#x27;中国银行黑龙江省分行原党委委员、副行长陈枫接受纪律审查和监察调查&#x27;</span>, <span class="hljs-string">&#x27;银河电子：签署储能业务战略合作协议&#x27;</span>]<br>embeddings = bert_encoder.encode(titles, convert_to_numpy=<span class="hljs-literal">True</span>, show_progress_bar=<span class="hljs-literal">True</span>)<br><span class="hljs-built_in">print</span>(embeddings.shape)<br></code></pre></td></tr></table></figure>
+
+<p>进一步的，如果我们想对一批新闻建模，那么可以把这些句向量当做一个个单词，利用长序列transformer技术进行进一步的编码，然后取pooling层输出作为新闻因子。</p>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><p>本文所训练的模型已共享至云盘： <a target="_blank" rel="noopener" href="https://cloud.189.cn/t/7vyeqq6jqQZj">https://cloud.189.cn/t/7vyeqq6jqQZj</a> (访问码:5m5y)，欢迎大家下载使用。</p>
+<hr>
+<p>欢迎关注我的公众号“<strong>量化实战</strong>”，原创技术文章第一时间推送。<br><img src="/img/qrcode.jpg" srcset="/img/loading.gif" lazyload></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E6%96%B0%E9%97%BB%E4%BA%8B%E4%BB%B6/">新闻事件</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E9%87%8F%E5%8C%96%E7%AD%96%E7%95%A5/">量化策略</a>
+                    
+                      <a class="hover-with-bg" href="/tags/BERT%E9%A2%84%E8%AE%AD%E7%BB%83/">BERT预训练</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">
+                  
+                    本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！
+                  
+                </p>
+              
+              
+                <div class="post-prevnext">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/11/26/%E6%90%AD%E5%BB%BACTP%E6%8E%A5%E5%8F%A3%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93Web%E6%9C%8D%E5%8A%A1/">
+                        <span class="hidden-mobile">搭建CTP接口量化交易Web服务</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments" lazyload>
+                
+                  
+                
+                
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appKey":"ODqlMdJWwrMxHFHzfz3pMvBS","path":"window.location.pathname","placeholder":"说点什么","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":null,"emojiCDN":null,"emojiMaps":null,"enableQQ":false,"appid":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appkey":"ODqlMdJWwrMxHFHzfz3pMvBS"},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          Fluid.plugins.initFancyBox('#valine .vcontent img:not(.vemoji)');
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+  </main>
+
+  <footer class="text-center mt-5 py-3">
+  <div class="footer-content">
+     <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+  </div>
+  
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- LeanCloud 统计PV -->
+        <span id="leancloud-site-pv-container" style="display: none">
+            总访问量 
+            <span id="leancloud-site-pv"></span>
+             次
+          </span>
+      
+      
+        <!-- LeanCloud 统计UV -->
+        <span id="leancloud-site-uv-container" style="display: none">
+            总访客数 
+            <span id="leancloud-site-uv"></span>
+             人
+          </span>
+      
+
+    
+  </div>
+
+
+  
+  <!-- 备案信息 -->
+  <div class="beian">
+    <span>
+      <a href="http://beian.miit.gov.cn/" target="_blank" rel="nofollow noopener">
+        粤ICP备19097965号
+      </a>
+    </span>
+    
+  </div>
+
+
+  
+</footer>
+
+
+  <!-- SCRIPTS -->
+  
+  <script  src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" ></script>
+<script  src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+<!-- Plugins -->
+
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  
+    <script  src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js" ></script>
+  
+  
+    <script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js" ></script>
+  
+
+
+
+
+  <script defer src="/js/leancloud.js" ></script>
+
+
+
+  <script  src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var title = document.getElementById('subtitle').title;
+      
+        typing(title);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <!-- Baidu Analytics -->
+    <script defer>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?e2bacb4062644434b87a03658392592e";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+  
+
+  
+
+  
+    <!-- Google gtag.js -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YSYVRNN9T"></script>
+    <script defer>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-7YSYVRNN9T');
+    </script>
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+<!-- 主题的启动项 保持在最底部 -->
+<script  src="/js/boot.js" ></script>
+
+
+</body>
+</html>

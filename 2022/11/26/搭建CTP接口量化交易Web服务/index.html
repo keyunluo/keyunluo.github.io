@@ -1,0 +1,664 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.jpg">
+  <link rel="icon" href="/img/favicon.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Keyun Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="CTP是上期技术推出的一套可供程序调用的交易接口，在期货和ETF期权量化交易中被广泛使用。由于期货市场的开放性，个人用户进行穿透认证后即可使用，门槛较低。本文将其中的交易接口做进一步的轻量化封装，仅供研究参考。  一、CTP接口Python Web服务基于ctpwrapper和ctp_client的CTP轻量级Python Web服务封装，可查询期货、期权行情以及进行下单交易。 前提：研究的话注">
+<meta property="og:type" content="article">
+<meta property="og:title" content="搭建CTP接口量化交易Web服务">
+<meta property="og:url" content="https://keyunluo.github.io/2022/11/26/%E6%90%AD%E5%BB%BACTP%E6%8E%A5%E5%8F%A3%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93Web%E6%9C%8D%E5%8A%A1/index.html">
+<meta property="og:site_name" content="流光">
+<meta property="og:description" content="CTP是上期技术推出的一套可供程序调用的交易接口，在期货和ETF期权量化交易中被广泛使用。由于期货市场的开放性，个人用户进行穿透认证后即可使用，门槛较低。本文将其中的交易接口做进一步的轻量化封装，仅供研究参考。  一、CTP接口Python Web服务基于ctpwrapper和ctp_client的CTP轻量级Python Web服务封装，可查询期货、期权行情以及进行下单交易。 前提：研究的话注">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+<meta property="article:published_time" content="2022-11-26T04:00:00.000Z">
+<meta property="article:modified_time" content="2022-11-26T04:52:11.900Z">
+<meta property="article:author" content="Keyun Luo">
+<meta property="article:tag" content="量化交易">
+<meta property="article:tag" content="CTP">
+<meta property="article:tag" content="期货">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+  
+  
+  <title>搭建CTP接口量化交易Web服务 - 流光</title>
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/github-gist.min.css" />
+    
+  
+
+  
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    var CONFIG = {"hostname":"keyunluo.github.io","root":"/","version":"1.8.14","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"right","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"copy_btn":true,"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"baidu":"e2bacb4062644434b87a03658392592e","google":null,"gtag":"G-7YSYVRNN9T","tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","app_key":"ODqlMdJWwrMxHFHzfz3pMvBS","server_url":"https://nqndu9io.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+
+<body>
+  <header style="height: 30vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>博客</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner" id="banner" parallax=true
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="page-header text-center fade-in-up">
+            <span class="h2" id="subtitle" title="搭建CTP接口量化交易Web服务">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2022-11-26 12:00" pubdate>
+        2022年11月26日 中午
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      11k 字
+    </span>
+  
+
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      91 分钟
+    </span>
+  
+
+  
+  
+    
+      <!-- LeanCloud 统计文章PV -->
+      <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+        <i class="iconfont icon-eye" aria-hidden="true"></i>
+        <span id="leancloud-page-views"></span> 次
+      </span>
+    
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">搭建CTP接口量化交易Web服务</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2022年11月26日 下午
+                
+              </p>
+            
+            <div class="markdown-body">
+              <blockquote>
+<p>CTP是上期技术推出的一套可供程序调用的交易接口，在期货和ETF期权量化交易中被广泛使用。由于期货市场的开放性，个人用户进行穿透认证后即可使用，门槛较低。本文将其中的交易接口做进一步的轻量化封装，仅供研究参考。</p>
+</blockquote>
+<h2 id="一、CTP接口Python-Web服务"><a href="#一、CTP接口Python-Web服务" class="headerlink" title="一、CTP接口Python Web服务"></a>一、CTP接口Python Web服务</h2><p>基于<a target="_blank" rel="noopener" href="https://github.com/nooperpudd/ctpwrapper">ctpwrapper</a>和<a target="_blank" rel="noopener" href="https://github.com/zhou-yuxin/ctp_client">ctp_client</a>的CTP轻量级Python Web服务封装，可查询期货、期权行情以及进行下单交易。</p>
+<p>前提：研究的话注册一个simnow账号，实盘需要联系期货公司申请CTP穿透认证(推荐使用VNPY，一般在自己电脑上登录一下就OK)，这样便可愉快的玩耍[亏钱]了</p>
+<ul>
+<li><input checked="" disabled="" type="checkbox"> HTTP请求Tick行情</li>
+<li><input checked="" disabled="" type="checkbox"> HTTP请求期货期权合约代码</li>
+<li><input checked="" disabled="" type="checkbox"> 内外盘期货实时行情</li>
+<li><input checked="" disabled="" type="checkbox"> 新闻资讯、经济数据</li>
+<li><input checked="" disabled="" type="checkbox"> HTTP下单(限价、市价单的开仓与平仓)</li>
+<li><input checked="" disabled="" type="checkbox"> HTTP获取持仓以及资金</li>
+<li><input checked="" disabled="" type="checkbox"> 每日定时自动启动(白天8:40，夜盘20:40)</li>
+</ul>
+<h2 id="二、安装"><a href="#二、安装" class="headerlink" title="二、安装"></a>二、安装</h2><ul>
+<li>首先安装cython等: <code>pip install -U cython aiohttp apscheduler</code></li>
+<li>然后安装ctpwrapper: <code>pip install -U ctpwrapper</code></li>
+<li>最后安装web服务器: <code>pip install sanic&lt;22</code></li>
+</ul>
+<h2 id="三、使用"><a href="#三、使用" class="headerlink" title="三、使用"></a>三、使用</h2><h3 id="3-1-配置config-json"><a href="#3-1-配置config-json" class="headerlink" title="3.1 配置config.json"></a>3.1 配置config.json</h3><p>配置CTP实盘账号或Simnow账号</p>
+<figure class="highlight json"><table><tr><td class="gutter"><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></div></td><td class="code"><pre><code class="hljs json">&#123;<br>    <span class="hljs-attr">&quot;investor_id&quot;</span>: <span class="hljs-string">&quot;******&quot;</span>,<br>    <span class="hljs-attr">&quot;broker_id&quot;</span>: <span class="hljs-string">&quot;9999&quot;</span>,<br>    <span class="hljs-attr">&quot;password&quot;</span>: <span class="hljs-string">&quot;******&quot;</span>,<br>    <span class="hljs-attr">&quot;md_server&quot;</span>: <span class="hljs-string">&quot;tcp://180.168.146.187:10131&quot;</span>,<br>    <span class="hljs-attr">&quot;trader_server&quot;</span>: <span class="hljs-string">&quot;tcp://180.168.146.187:10130&quot;</span>,<br>    <span class="hljs-attr">&quot;app_id&quot;</span>: <span class="hljs-string">&quot;simnow_client_test&quot;</span>,<br>    <span class="hljs-attr">&quot;auth_code&quot;</span>: <span class="hljs-string">&quot;0000000000000000&quot;</span><br>  &#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-2-CTP客户端封装"><a href="#3-2-CTP客户端封装" class="headerlink" title="3.2 CTP客户端封装"></a>3.2 CTP客户端封装</h3><p>如不需要使用Web方式，那么可以直接使用下面的Client类来处理行情和交易：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Client</span>:</span><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__init__</span>(<span class="hljs-params">self, md_front, td_front, broker_id, app_id, auth_code, user_id, password</span>):</span><br>        self._md = <span class="hljs-literal">None</span><br>        self._td = <span class="hljs-literal">None</span><br>        self.md_front = md_front<br>        self.td_front = td_front<br>        self.broker_id = broker_id<br>        self.app_id = app_id<br>        self.auth_code = auth_code<br>        self.user_id = user_id<br>        self.password = password<br>    <br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">login</span>(<span class="hljs-params">self</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        登录行情、交易</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        self._td = TraderImpl(self.td_front, self.broker_id, self.app_id, self.auth_code, self.user_id, self.password)<br>        self._md = QuoteImpl(self.md_front)<br>    <br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">logout</span>(<span class="hljs-params">self</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        登出</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        self._md.shutdown()<br>        self._td.shutdown()<br>    <br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">setReceiver</span>(<span class="hljs-params">self</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        tick行情处理函数</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">try</span>:<br>            <span class="hljs-keyword">from</span> hq_func <span class="hljs-keyword">import</span> parse_hq<br>        <span class="hljs-keyword">except</span>:<br>            parse_hq = <span class="hljs-keyword">lambda</span> x: <span class="hljs-built_in">print</span>(x)<br>        <span class="hljs-keyword">return</span> self._md.setReceiver(parse_hq)<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">subscribe</span>(<span class="hljs-params">self, codes</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        订阅合约代码</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">for</span> code <span class="hljs-keyword">in</span> codes:<br>            <span class="hljs-keyword">if</span> code <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> self._td._instruments:<br>                <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">&quot;合约&lt;%s&gt;不存在&quot;</span> % code)<br>        self._md.subscribe(codes)<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_instruments_option</span>(<span class="hljs-params">self, future=<span class="hljs-literal">None</span></span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        获取期权合约列表，可指定对应的期货代码</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">if</span> future <span class="hljs-keyword">is</span> <span class="hljs-literal">None</span>:<br>            <span class="hljs-keyword">return</span> self._td.instruments_option<br>        <span class="hljs-keyword">return</span> self._td.instruments_option.get(future, <span class="hljs-literal">None</span>)<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_instruments_future</span>(<span class="hljs-params">self, exchange=<span class="hljs-literal">None</span></span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        获取期货合约列表，可指定对应的交易所</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">if</span> exchange <span class="hljs-keyword">is</span> <span class="hljs-literal">None</span>:<br>            <span class="hljs-keyword">return</span> self._td.instruments_future<br>        <span class="hljs-keyword">return</span> self._td.instruments_future[exchange]<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">unsubscribe</span>(<span class="hljs-params">self, codes</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        取消订阅</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        self._md.unsubscribe(codes)<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">getInstrument</span>(<span class="hljs-params">self, code</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        获取指定合约详情</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">if</span> code <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> self._td._instruments:<br>            <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">&quot;合约&lt;%s&gt;不存在&quot;</span> % code)<br>        <span class="hljs-keyword">return</span> self._td._instruments[code].copy()<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">getAccount</span>(<span class="hljs-params">self</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        获取账号资金情况</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">return</span> self._td.getAccount()<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">getOrders</span>(<span class="hljs-params">self</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        获取当天订单</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">return</span> self._td.getOrders()<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">getPositions</span>(<span class="hljs-params">self</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        获取持仓</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">return</span> self._td.getPositions()<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">orderMarket</span>(<span class="hljs-params">self, code, direction, volume</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        市价下单</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">return</span> self._td.orderMarket(code, direction, volume)<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">orderFAK</span>(<span class="hljs-params">self, code, direction, volume, price, min_volume</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        FAK下单</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">return</span> self._td.orderFAK(code, direction, volume, price, min_volume)<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">orderFOK</span>(<span class="hljs-params">self, code, direction, volume, price</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        FOK下单</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">return</span> self._td.orderFOK(code, direction, volume, price)<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">orderLimit</span>(<span class="hljs-params">self, code, direction, volume, price</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        限价单</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        <span class="hljs-keyword">return</span> self._td.orderLimit(code, direction, volume, price)<br><br>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">deleteOrder</span>(<span class="hljs-params">self, order_id</span>):</span><br>        <span class="hljs-string">&#x27;&#x27;&#x27;</span><br><span class="hljs-string">        撤销订单</span><br><span class="hljs-string">        &#x27;&#x27;&#x27;</span><br>        self._td.deleteOrder(order_id)<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-3-启动程序"><a href="#3-3-启动程序" class="headerlink" title="3.3 启动程序"></a>3.3 启动程序</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs shell">python ctp_service.py<br></code></pre></td></tr></table></figure>
+
+<h2 id="四、HTTP接口"><a href="#四、HTTP接口" class="headerlink" title="四、HTTP接口"></a>四、HTTP接口</h2><h3 id="4-1-行情功能"><a href="#4-1-行情功能" class="headerlink" title="4.1 行情功能"></a>4.1 行情功能</h3><ul>
+<li>获取期货合约所有代码</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/get_instruments_future?exchange=INE&#x27;</span>).json()<br><span class="hljs-built_in">print</span>(data[<span class="hljs-number">0</span>])<br>&#123;<span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;原油2309&#x27;</span>, <span class="hljs-string">&#x27;exchange&#x27;</span>: <span class="hljs-string">&#x27;INE&#x27;</span>, <span class="hljs-string">&#x27;multiple&#x27;</span>: <span class="hljs-number">1000</span>, <span class="hljs-string">&#x27;price_tick&#x27;</span>: <span class="hljs-number">0.1</span>, <span class="hljs-string">&#x27;expire_date&#x27;</span>: <span class="hljs-string">&#x27;2023-08-31&#x27;</span>, <span class="hljs-string">&#x27;long_margin_ratio&#x27;</span>: <span class="hljs-number">0.17</span>, <span class="hljs-string">&#x27;short_margin_ratio&#x27;</span>: <span class="hljs-number">0.17</span>, <span class="hljs-string">&#x27;option_type&#x27;</span>: <span class="hljs-literal">None</span>, <span class="hljs-string">&#x27;strike_price&#x27;</span>: <span class="hljs-number">0.0</span>, <span class="hljs-string">&#x27;is_trading&#x27;</span>: <span class="hljs-literal">True</span>, <span class="hljs-string">&#x27;symbol&#x27;</span>: <span class="hljs-string">&#x27;sc2309&#x27;</span>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>获取期权合约所有代码</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/get_instruments_option?func_name=sc2302&#x27;</span>).json()<br><span class="hljs-built_in">print</span>(data[<span class="hljs-number">0</span>])<br>&#123;<span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;sc2302C510&#x27;</span>, <span class="hljs-string">&#x27;exchange&#x27;</span>: <span class="hljs-string">&#x27;INE&#x27;</span>, <span class="hljs-string">&#x27;multiple&#x27;</span>: <span class="hljs-number">1000</span>, <span class="hljs-string">&#x27;price_tick&#x27;</span>: <span class="hljs-number">0.05</span>, <span class="hljs-string">&#x27;expire_date&#x27;</span>: <span class="hljs-string">&#x27;2022-12-28&#x27;</span>, <span class="hljs-string">&#x27;long_margin_ratio&#x27;</span>: <span class="hljs-literal">None</span>, <span class="hljs-string">&#x27;short_margin_ratio&#x27;</span>: <span class="hljs-literal">None</span>, <span class="hljs-string">&#x27;option_type&#x27;</span>: <span class="hljs-string">&#x27;call&#x27;</span>, <span class="hljs-string">&#x27;strike_price&#x27;</span>: <span class="hljs-number">510.0</span>, <span class="hljs-string">&#x27;is_trading&#x27;</span>: <span class="hljs-literal">True</span>, <span class="hljs-string">&#x27;symbol&#x27;</span>: <span class="hljs-string">&#x27;sc2302C510&#x27;</span>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>设置订阅tick行情处理函数</li>
+</ul>
+<p>在<code>hq_func.py</code>文件中定义自己的<code>parse_hq</code>函数，示例仅将行情打印出来</p>
+<ul>
+<li>订阅、取消订阅行情</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/subscribe?codes=MA301&#x27;</span>).json()<br><span class="hljs-built_in">print</span>(data)<br>&#123;<span class="hljs-string">&#x27;trade_time&#x27;</span>: <span class="hljs-string">&#x27;2022-11-24 03:07:28&#x27;</span>, <span class="hljs-string">&#x27;update_sec&#x27;</span>: <span class="hljs-number">0</span>, <span class="hljs-string">&#x27;code&#x27;</span>: <span class="hljs-string">&#x27;MA301&#x27;</span>, <span class="hljs-string">&#x27;price&#x27;</span>: <span class="hljs-number">2583.0</span>, <span class="hljs-string">&#x27;open&#x27;</span>: <span class="hljs-number">2530.0</span>, <span class="hljs-string">&#x27;close&#x27;</span>: <span class="hljs-number">2553.0</span>, <span class="hljs-string">&#x27;highest&#x27;</span>: <span class="hljs-number">2588.0</span>, <span class="hljs-string">&#x27;lowest&#x27;</span>: <span class="hljs-number">2523.0</span>, <span class="hljs-string">&#x27;upper_limit&#x27;</span>: <span class="hljs-number">2732.0</span>, <span class="hljs-string">&#x27;lower_limit&#x27;</span>: <span class="hljs-number">2374.0</span>, <span class="hljs-string">&#x27;settlement&#x27;</span>: <span class="hljs-number">2546.0</span>, <span class="hljs-string">&#x27;volume&#x27;</span>: <span class="hljs-number">1690398</span>, <span class="hljs-string">&#x27;turnover&#x27;</span>: <span class="hljs-number">4325728482.0</span>, <span class="hljs-string">&#x27;open_interest&#x27;</span>: <span class="hljs-number">1013956</span>, <span class="hljs-string">&#x27;pre_close&#x27;</span>: <span class="hljs-number">2542.0</span>, <span class="hljs-string">&#x27;pre_settlement&#x27;</span>: <span class="hljs-number">2553.0</span>, <span class="hljs-string">&#x27;pre_open_interest&#x27;</span>: <span class="hljs-number">1068566</span>, <span class="hljs-string">&#x27;ask1&#x27;</span>: (<span class="hljs-number">2584.0</span>, <span class="hljs-number">659</span>), <span class="hljs-string">&#x27;bid1&#x27;</span>: (<span class="hljs-number">2583.0</span>, <span class="hljs-number">497</span>), <span class="hljs-string">&#x27;ask2&#x27;</span>: (<span class="hljs-literal">None</span>, <span class="hljs-number">0</span>), <span class="hljs-string">&#x27;bid2&#x27;</span>: (<span class="hljs-literal">None</span>, <span class="hljs-number">0</span>), <span class="hljs-string">&#x27;ask3&#x27;</span>: (<span class="hljs-literal">None</span>, <span class="hljs-number">0</span>), <span class="hljs-string">&#x27;bid3&#x27;</span>: (<span class="hljs-literal">None</span>, <span class="hljs-number">0</span>), <span class="hljs-string">&#x27;ask4&#x27;</span>: (<span class="hljs-literal">None</span>, <span class="hljs-number">0</span>), <span class="hljs-string">&#x27;bid4&#x27;</span>: (<span class="hljs-literal">None</span>, <span class="hljs-number">0</span>), <span class="hljs-string">&#x27;ask5&#x27;</span>: (<span class="hljs-literal">None</span>, <span class="hljs-number">0</span>), <span class="hljs-string">&#x27;bid5&#x27;</span>: (<span class="hljs-literal">None</span>, <span class="hljs-number">0</span>)&#125;<br><br>data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/unsubscribe?codes=MA301&#x27;</span>).json()<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>查询新闻</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/market/news&#x27;</span>).json()<br><span class="hljs-built_in">print</span>(data[<span class="hljs-string">&#x27;data&#x27;</span>][:<span class="hljs-number">1</span>])<br>[&#123;<span class="hljs-string">&#x27;id&#x27;</span>: <span class="hljs-string">&#x27;20221126112645980100&#x27;</span>,<br>  <span class="hljs-string">&#x27;time&#x27;</span>: <span class="hljs-string">&#x27;2022-11-26 11:26:45&#x27;</span>,<br>  <span class="hljs-string">&#x27;type&#x27;</span>: <span class="hljs-number">0</span>,<br>  <span class="hljs-string">&#x27;data&#x27;</span>: &#123;<span class="hljs-string">&#x27;pic&#x27;</span>: <span class="hljs-string">&#x27;&#x27;</span>,<br>   <span class="hljs-string">&#x27;content&#x27;</span>: <span class="hljs-string">&#x27;&lt;b&gt;【金十期货整理：央行降准对大宗商品期货市场有何影响？】&lt;/b&gt;&lt;br/&gt;&lt;span class=&quot;section-news&quot;&gt;1. 光大期货 宏观分析师于洁：历次降准对黑色系商品影响更大，主要因为黑色品种的需求完全看国内情况，其中螺纹钢基本上在降准之后都表现上涨。&lt;/span&gt;&lt;br/&gt;&lt;span class=&quot;section-news&quot;&gt;2. 申银万国期货研究所所长助理汪洋：接下来大宗商品走势仍要关注美联储加息和国内经济复苏情况。美联储12月份议息会议临近，预计美国通胀稳步下行有助于市场稳定，叠加国内经济复苏及流动性释放预期，因此对商品市场以反弹行情看待。如果接下来国内经济数据转暖得到确认，那么大宗商品仍有进一步反弹的空间。&lt;/span&gt;&lt;br/&gt;&lt;span class=&quot;section-news&quot;&gt;3. 一德期货宏观分析师肖利娜：在经济弱复苏形势下，降准对大宗商品市场整体影响有限，但与房地产相关的黑色品种或在短期内受到明显提振。&lt;/span&gt;&#x27;</span>&#125;,<br>  <span class="hljs-string">&#x27;important&#x27;</span>: <span class="hljs-number">0</span>,<br>  <span class="hljs-string">&#x27;tags&#x27;</span>: [],<br>  <span class="hljs-string">&#x27;channel&#x27;</span>: [<span class="hljs-number">4</span>, <span class="hljs-number">5</span>],<br>  <span class="hljs-string">&#x27;remark&#x27;</span>: []&#125;]<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>查询经济数据</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/market/event?event_date=2022-11-25&#x27;</span>).json()<br><span class="hljs-built_in">print</span>(data[:<span class="hljs-number">1</span>])<br>[&#123;<span class="hljs-string">&#x27;actual&#x27;</span>: <span class="hljs-string">&#x27;0.4&#x27;</span>,<br>  <span class="hljs-string">&#x27;affect&#x27;</span>: <span class="hljs-number">0</span>,<br>  <span class="hljs-string">&#x27;show_affect&#x27;</span>: <span class="hljs-number">1</span>,<br>  <span class="hljs-string">&#x27;consensus&#x27;</span>: <span class="hljs-string">&#x27;0.50&#x27;</span>,<br>  <span class="hljs-string">&#x27;country&#x27;</span>: <span class="hljs-string">&#x27;新西兰&#x27;</span>,<br>  <span class="hljs-string">&#x27;id&#x27;</span>: <span class="hljs-number">271221</span>,<br>  <span class="hljs-string">&#x27;indicator_id&#x27;</span>: <span class="hljs-number">692</span>,<br>  <span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;零售销售季率&#x27;</span>,<br>  <span class="hljs-string">&#x27;previous&#x27;</span>: <span class="hljs-string">&#x27;-2.30&#x27;</span>,<br>  <span class="hljs-string">&#x27;pub_time&#x27;</span>: <span class="hljs-string">&#x27;2022-11-24T21:45:00.000Z&#x27;</span>,<br>  <span class="hljs-string">&#x27;revised&#x27;</span>: <span class="hljs-literal">None</span>,<br>  <span class="hljs-string">&#x27;star&#x27;</span>: <span class="hljs-number">2</span>,<br>  <span class="hljs-string">&#x27;time_period&#x27;</span>: <span class="hljs-string">&#x27;第三季度&#x27;</span>,<br>  <span class="hljs-string">&#x27;unit&#x27;</span>: <span class="hljs-string">&#x27;%&#x27;</span>,<br>  <span class="hljs-string">&#x27;video_url&#x27;</span>: <span class="hljs-literal">None</span>,<br>  <span class="hljs-string">&#x27;pub_time_unix&#x27;</span>: <span class="hljs-number">1669326300</span>,<br>  <span class="hljs-string">&#x27;time_status&#x27;</span>: <span class="hljs-literal">None</span>&#125;]<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>查询行情快照</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/market/realtime_snap?dtype=中金所&#x27;</span>).json()<br><span class="hljs-built_in">print</span>(data[<span class="hljs-string">&#x27;data&#x27;</span>][<span class="hljs-string">&#x27;list&#x27;</span>][:<span class="hljs-number">1</span>])<br>[&#123;<span class="hljs-string">&#x27;categoryCode&#x27;</span>: <span class="hljs-string">&#x27;&#x27;</span>,<br>  <span class="hljs-string">&#x27;date&#x27;</span>: <span class="hljs-string">&#x27;2022-11-25 15:00:00&#x27;</span>,<br>  <span class="hljs-string">&#x27;highPrice&#x27;</span>: <span class="hljs-string">&#x27;3802.6&#x27;</span>,<br>  <span class="hljs-string">&#x27;isQuoteOrder&#x27;</span>: <span class="hljs-literal">None</span>,<br>  <span class="hljs-string">&#x27;lowPrice&#x27;</span>: <span class="hljs-string">&#x27;3751.0&#x27;</span>,<br>  <span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;沪深300连续&#x27;</span>,<br>  <span class="hljs-string">&#x27;openPrice&#x27;</span>: <span class="hljs-string">&#x27;3760.4&#x27;</span>,<br>  <span class="hljs-string">&#x27;preClosePrice&#x27;</span>: <span class="hljs-string">&#x27;&#x27;</span>,<br>  <span class="hljs-string">&#x27;quotationShowName&#x27;</span>: <span class="hljs-string">&#x27;IFC0&#x27;</span>,<br>  <span class="hljs-string">&#x27;quoteCode&#x27;</span>: <span class="hljs-string">&#x27;IFC0&#x27;</span>,<br>  <span class="hljs-string">&#x27;range&#x27;</span>: <span class="hljs-string">&#x27;17.2&#x27;</span>,<br>  <span class="hljs-string">&#x27;rangePercent&#x27;</span>: <span class="hljs-string">&#x27;0.45%&#x27;</span>,<br>  <span class="hljs-string">&#x27;tradePrice&#x27;</span>: <span class="hljs-string">&#x27;3782.2&#x27;</span>&#125;]<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>查询实时行情</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/market/realtime_hq?code=CNH&#x27;</span>).json()<br><span class="hljs-built_in">print</span>(data)<br>&#123;<span class="hljs-string">&#x27;code&#x27;</span>: <span class="hljs-number">0</span>,<br> <span class="hljs-string">&#x27;message&#x27;</span>: <span class="hljs-string">&#x27;成功&#x27;</span>,<br> <span class="hljs-string">&#x27;data&#x27;</span>: [&#123;<span class="hljs-string">&#x27;categoryCode&#x27;</span>: <span class="hljs-string">&#x27;&#x27;</span>,<br>   <span class="hljs-string">&#x27;date&#x27;</span>: <span class="hljs-string">&#x27;2022-11-26 05:55:00&#x27;</span>,<br>   <span class="hljs-string">&#x27;highPrice&#x27;</span>: <span class="hljs-string">&#x27;7.2126&#x27;</span>,<br>   <span class="hljs-string">&#x27;isQuoteOrder&#x27;</span>: <span class="hljs-literal">None</span>,<br>   <span class="hljs-string">&#x27;lowPrice&#x27;</span>: <span class="hljs-string">&#x27;7.1475&#x27;</span>,<br>   <span class="hljs-string">&#x27;name&#x27;</span>: <span class="hljs-string">&#x27;离岸人民币&#x27;</span>,<br>   <span class="hljs-string">&#x27;openPrice&#x27;</span>: <span class="hljs-string">&#x27;7.1692&#x27;</span>,<br>   <span class="hljs-string">&#x27;preClosePrice&#x27;</span>: <span class="hljs-string">&#x27;7.1697&#x27;</span>,<br>   <span class="hljs-string">&#x27;quotationShowName&#x27;</span>: <span class="hljs-string">&#x27;USDCNH&#x27;</span>,<br>   <span class="hljs-string">&#x27;quoteCode&#x27;</span>: <span class="hljs-string">&#x27;CNH&#x27;</span>,<br>   <span class="hljs-string">&#x27;range&#x27;</span>: <span class="hljs-string">&#x27;0.0207&#x27;</span>,<br>   <span class="hljs-string">&#x27;rangePercent&#x27;</span>: <span class="hljs-string">&#x27;0.28%&#x27;</span>,<br>   <span class="hljs-string">&#x27;tradePrice&#x27;</span>: <span class="hljs-string">&#x27;7.1904&#x27;</span>&#125;],<br> <span class="hljs-string">&#x27;rollback&#x27;</span>: <span class="hljs-literal">False</span>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="4-2-交易功能"><a href="#4-2-交易功能" class="headerlink" title="4.2 交易功能"></a>4.2 交易功能</h3><ul>
+<li>获取资金</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/get_account&#x27;</span>).json()<br>&#123;<span class="hljs-string">&#x27;balance&#x27;</span>: <span class="hljs-number">20011519.72</span>, <span class="hljs-string">&#x27;margin&#x27;</span>: <span class="hljs-number">0.0</span>, <span class="hljs-string">&#x27;available&#x27;</span>: <span class="hljs-number">20011519.72</span>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>下限价单</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/order_limit?code=MA301&amp;direction=long&amp;volume=6&amp;price=2600&#x27;</span>).json()<br>data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/order_limit?code=sc2302&amp;direction=long&amp;volume=1&amp;price=600&#x27;</span>).json()<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>获取持仓</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/get_postion&#x27;</span>).json()<br><br>[<br>    &#123;<span class="hljs-string">&#x27;code&#x27;</span>: <span class="hljs-string">&#x27;MA301&#x27;</span>,<br>    <span class="hljs-string">&#x27;direction&#x27;</span>: <span class="hljs-string">&#x27;long&#x27;</span>,<br>    <span class="hljs-string">&#x27;volume&#x27;</span>: <span class="hljs-number">6</span>,<br>    <span class="hljs-string">&#x27;margin&#x27;</span>: <span class="hljs-number">24883.2</span>,<br>    <span class="hljs-string">&#x27;cost&#x27;</span>: <span class="hljs-number">155520.0</span>&#125;,<br>    &#123;<span class="hljs-string">&#x27;code&#x27;</span>: <span class="hljs-string">&#x27;sc2302&#x27;</span>,<br>    <span class="hljs-string">&#x27;direction&#x27;</span>: <span class="hljs-string">&#x27;long&#x27;</span>,<br>    <span class="hljs-string">&#x27;volume&#x27;</span>: <span class="hljs-number">1</span>,<br>    <span class="hljs-string">&#x27;margin&#x27;</span>: <span class="hljs-number">97580.00000000001</span>,<br>    <span class="hljs-string">&#x27;cost&#x27;</span>: <span class="hljs-number">574000.0</span>&#125;<br>]<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>查看今日订单</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/get_orders&#x27;</span>).json()<br>  <br>[<br>    &#123;<span class="hljs-string">&#x27;code&#x27;</span>: <span class="hljs-string">&#x27;MA301&#x27;</span>,<br>    <span class="hljs-string">&#x27;direction&#x27;</span>: <span class="hljs-string">&#x27;long&#x27;</span>,<br>    <span class="hljs-string">&#x27;volume&#x27;</span>: <span class="hljs-number">6</span>,<br>    <span class="hljs-string">&#x27;margin&#x27;</span>: <span class="hljs-number">24883.2</span>,<br>    <span class="hljs-string">&#x27;cost&#x27;</span>: <span class="hljs-number">155520.0</span>&#125;,<br>    &#123;<span class="hljs-string">&#x27;code&#x27;</span>: <span class="hljs-string">&#x27;sc2302&#x27;</span>,<br>    <span class="hljs-string">&#x27;direction&#x27;</span>: <span class="hljs-string">&#x27;long&#x27;</span>,<br>    <span class="hljs-string">&#x27;volume&#x27;</span>: <span class="hljs-number">1</span>,<br>    <span class="hljs-string">&#x27;margin&#x27;</span>: <span class="hljs-number">97580.00000000001</span>,<br>    <span class="hljs-string">&#x27;cost&#x27;</span>: <span class="hljs-number">574000.0</span>&#125;<br>]<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>撤单</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python">data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/order_limit?code=MA301&amp;direction=long&amp;volume=6&amp;price=2500&#x27;</span>).json()<br><span class="hljs-built_in">print</span>(data)<br><span class="hljs-comment"># &#x27;       36554@MA301&#x27;</span><br>data = requests.get(<span class="hljs-string">&#x27;http://127.0.0.1:7000/trade/ctp/order_delete?order_id=       36554@MA301&#x27;</span>).json()<br></code></pre></td></tr></table></figure>
+<p>PS：之前陆续收到不少小伙伴的私聊，为了方便大家交流，特意建了一个微信群，大家如有需要，可在公众号下方的菜单<code>交流群</code>获得入群方式。</p>
+<hr>
+<p>欢迎关注我的公众号“<strong>量化实战</strong>”，原创技术文章第一时间推送。</p>
+<p><img src="/img/qrcode.jpg" srcset="/img/loading.gif" lazyload></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93/">量化交易</a>
+                    
+                      <a class="hover-with-bg" href="/tags/CTP/">CTP</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E6%9C%9F%E8%B4%A7/">期货</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">
+                  
+                    本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！
+                  
+                </p>
+              
+              
+                <div class="post-prevnext">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/01/02/%E5%9F%BA%E4%BA%8E%E9%87%91%E8%9E%8D%E6%96%B0%E9%97%BB%E6%95%B0%E6%8D%AE%E7%9A%84BERT%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E5%92%8C%E9%99%8D%E7%BB%B4/">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">基于金融新闻数据的BERT模型微调和降维</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/11/25/QMT%E9%87%8F%E5%8C%96%E5%B9%B3%E5%8F%B0%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98QA/">
+                        <span class="hidden-mobile">QMT量化平台常见问题QA</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments" lazyload>
+                
+                  
+                
+                
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appKey":"ODqlMdJWwrMxHFHzfz3pMvBS","path":"window.location.pathname","placeholder":"说点什么","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":null,"emojiCDN":null,"emojiMaps":null,"enableQQ":false,"appid":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appkey":"ODqlMdJWwrMxHFHzfz3pMvBS"},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          Fluid.plugins.initFancyBox('#valine .vcontent img:not(.vemoji)');
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+  </main>
+
+  <footer class="text-center mt-5 py-3">
+  <div class="footer-content">
+     <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+  </div>
+  
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- LeanCloud 统计PV -->
+        <span id="leancloud-site-pv-container" style="display: none">
+            总访问量 
+            <span id="leancloud-site-pv"></span>
+             次
+          </span>
+      
+      
+        <!-- LeanCloud 统计UV -->
+        <span id="leancloud-site-uv-container" style="display: none">
+            总访客数 
+            <span id="leancloud-site-uv"></span>
+             人
+          </span>
+      
+
+    
+  </div>
+
+
+  
+  <!-- 备案信息 -->
+  <div class="beian">
+    <span>
+      <a href="http://beian.miit.gov.cn/" target="_blank" rel="nofollow noopener">
+        粤ICP备19097965号
+      </a>
+    </span>
+    
+  </div>
+
+
+  
+</footer>
+
+
+  <!-- SCRIPTS -->
+  
+  <script  src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" ></script>
+<script  src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+<!-- Plugins -->
+
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  
+    <script  src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js" ></script>
+  
+  
+    <script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js" ></script>
+  
+
+
+
+
+  <script defer src="/js/leancloud.js" ></script>
+
+
+
+  <script  src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var title = document.getElementById('subtitle').title;
+      
+        typing(title);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <!-- Baidu Analytics -->
+    <script defer>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?e2bacb4062644434b87a03658392592e";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+  
+
+  
+
+  
+    <!-- Google gtag.js -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YSYVRNN9T"></script>
+    <script defer>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-7YSYVRNN9T');
+    </script>
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+<!-- 主题的启动项 保持在最底部 -->
+<script  src="/js/boot.js" ></script>
+
+
+</body>
+</html>
