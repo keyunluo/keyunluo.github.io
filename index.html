@@ -61,7 +61,7 @@
     <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
   <div class="container">
     <a class="navbar-brand" href="/">
-      <strong>博客</strong>
+      <strong>我的读书笔记</strong>
     </a>
 
     <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
@@ -182,6 +182,108 @@
               <div class="col-12 col-md-10 m-auto">
                 
 
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h1 class="index-header">
+        
+        <a href="/2023/02/03/%E6%B5%85%E8%B0%88Tick%E8%A1%8C%E6%83%85%E6%95%B0%E6%8D%AE%E6%B8%85%E6%B4%97--%E5%BA%94%E7%94%A8Clickhouse%E5%88%86%E6%9E%90%E5%87%BD%E6%95%B0/" target="_self">
+          浅谈Tick行情数据清洗——应用Clickhouse分析函数
+        </a>
+      </h1>
+
+      <p class="index-excerpt">
+        <a href="/2023/02/03/%E6%B5%85%E8%B0%88Tick%E8%A1%8C%E6%83%85%E6%95%B0%E6%8D%AE%E6%B8%85%E6%B4%97--%E5%BA%94%E7%94%A8Clickhouse%E5%88%86%E6%9E%90%E5%87%BD%E6%95%B0/" target="_self">
+          
+          数据清洗和理解是数据科学中的基础工作，重要而繁琐，经常占据了80%的工作量，在量化交易中也不例外。本文介绍如何利用Clickhouse数据仓库进行高效的数据清洗工作，以Tick行情处理为例，重点谈谈分析函数的使用。  一、分析函数概况1.1 与聚合函数的区别说到分析函数，就不得不提到聚合函数。聚合函数是汇总计算返回一个计算结果，而分析函数会根据表的行数，每行返回一个计算结果。  聚合函数特点：G
+        </a>
+      </p>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-02-03 18:00" pubdate>
+              2023-02-03
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Tick%E8%A1%8C%E6%83%85/">Tick行情</a>
+            
+              <a href="/tags/Clickhouse/">Clickhouse</a>
+            
+              <a href="/tags/%E9%87%8F%E5%8C%96%E7%B3%BB%E7%BB%9F/">量化系统</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h1 class="index-header">
+        
+        <a href="/2023/01/31/Tick%E8%A1%8C%E6%83%85%E6%95%B0%E6%8D%AE%E6%B5%81%E5%BC%8F%E5%A4%84%E7%90%86--%E5%BA%94%E7%94%A8Clickhouse%E7%AA%97%E5%8F%A3%E8%A7%86%E5%9B%BE/" target="_self">
+          Tick行情数据流式处理——应用Clickhouse窗口视图
+        </a>
+      </h1>
+
+      <p class="index-excerpt">
+        <a href="/2023/01/31/Tick%E8%A1%8C%E6%83%85%E6%95%B0%E6%8D%AE%E6%B5%81%E5%BC%8F%E5%A4%84%E7%90%86--%E5%BA%94%E7%94%A8Clickhouse%E7%AA%97%E5%8F%A3%E8%A7%86%E5%9B%BE/" target="_self">
+          
+          金融市场中我们经常会遇到切片数据，例如A股的L1行情，我们处理这类数据的思路无外乎对每一个Ticker，按照时间先后的顺序，在1Min、5Min甚至日线的维度上汇总特征，加工因子。考虑到执行效率问题，手工维护这个流程略显冗繁，本文介绍如何使用Clickhouse数据仓库来自动化的高效完成这类操作，并以K线合成为例完整走一遍流程。  一、基本概念1.1 窗口流数据的计算可以把连续不断的数据按照一定
+        </a>
+      </p>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-01-31 18:00" pubdate>
+              2023-01-31
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Tick%E8%A1%8C%E6%83%85/">Tick行情</a>
+            
+              <a href="/tags/Clickhouse/">Clickhouse</a>
+            
+              <a href="/tags/%E9%87%8F%E5%8C%96%E7%B3%BB%E7%BB%9F/">量化系统</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
 
   <div class="row mx-auto index-card">
     
@@ -426,9 +528,9 @@
           <div class="post-meta">
             <i class="iconfont icon-tags"></i>
             
-              <a href="/tags/%E8%BF%85%E6%8A%95QMT/">迅投QMT</a>
-            
               <a href="/tags/%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93/">量化交易</a>
+            
+              <a href="/tags/%E8%BF%85%E6%8A%95QMT/">迅投QMT</a>
             
               <a href="/tags/%E8%A1%8C%E6%83%85%E6%8E%A5%E5%8F%A3/">行情接口</a>
             
@@ -477,9 +579,9 @@
           <div class="post-meta">
             <i class="iconfont icon-tags"></i>
             
-              <a href="/tags/%E8%BF%85%E6%8A%95QMT/">迅投QMT</a>
-            
               <a href="/tags/%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93/">量化交易</a>
+            
+              <a href="/tags/%E8%BF%85%E6%8A%95QMT/">迅投QMT</a>
             
               <a href="/tags/%E8%A1%8C%E6%83%85%E6%8E%A5%E5%8F%A3/">行情接口</a>
             
@@ -579,115 +681,11 @@
           <div class="post-meta">
             <i class="iconfont icon-tags"></i>
             
-              <a href="/tags/%E8%BF%85%E6%8A%95QMT/">迅投QMT</a>
-            
               <a href="/tags/%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93/">量化交易</a>
+            
+              <a href="/tags/%E8%BF%85%E6%8A%95QMT/">迅投QMT</a>
             
               <a href="/tags/%E8%A1%8C%E6%83%85%E6%8E%A5%E5%8F%A3/">行情接口</a>
-            
-          </div>
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h1 class="index-header">
-        
-        <a href="/2022/07/20/%E8%B7%A8%E5%B8%82%E5%9C%BA%E8%81%94%E5%8A%A8-%E7%BE%8E%E8%82%A1%E8%A1%8C%E6%83%85%E5%AF%B9A%E8%82%A1%E5%BD%B1%E5%93%8D%E9%A2%84%E6%B5%8B/" target="_self">
-          跨市场联动:基于美股隔日行情预测A股行业涨跌
-        </a>
-      </h1>
-
-      <p class="index-excerpt">
-        <a href="/2022/07/20/%E8%B7%A8%E5%B8%82%E5%9C%BA%E8%81%94%E5%8A%A8-%E7%BE%8E%E8%82%A1%E8%A1%8C%E6%83%85%E5%AF%B9A%E8%82%A1%E5%BD%B1%E5%93%8D%E9%A2%84%E6%B5%8B/" target="_self">
-          
-          随着A股北上资金的不断涌入，跨市场联动性也愈发显著，在内循环的同时也时刻受着外部重要市场行情波动的影响，美股作为全球市场，一丝风吹草动都对全球金融造成剧烈波动。本文将探索美股行情中的技术面因子对当天A股市场的行业影响，使用机器学习技术预测行业涨跌情况，并同基准沪深300指数作对比以说明实际效果。   美股因子数据生成美股标的选择美股市场总有有高达数万个股票、ETF标的，我们这里选择那些具有代表性
-        </a>
-      </p>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2022-07-20 12:00" pubdate>
-              2022-07-20
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-category"></i>
-            
-              <a href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
-            
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/pandas-ta/">pandas_ta</a>
-            
-              <a href="/tags/%E6%8A%80%E6%9C%AF%E5%88%86%E6%9E%90/">技术分析</a>
-            
-              <a href="/tags/%E8%B7%A8%E5%B8%82%E5%9C%BA%E8%81%94%E5%8A%A8/">跨市场联动</a>
-            
-              <a href="/tags/%E7%BE%8E%E8%82%A1/">美股</a>
-            
-          </div>
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h1 class="index-header">
-        
-        <a href="/2022/07/10/%E8%BF%85%E6%8A%95QMT%E8%82%A1%E7%A5%A8%E4%BA%A4%E6%98%93%E6%8E%A5%E5%8F%A3%E5%B0%81%E8%A3%85/" target="_self">
-          迅投QMT量化平台交易接口封装
-        </a>
-      </h1>
-
-      <p class="index-excerpt">
-        <a href="/2022/07/10/%E8%BF%85%E6%8A%95QMT%E8%82%A1%E7%A5%A8%E4%BA%A4%E6%98%93%E6%8E%A5%E5%8F%A3%E5%B0%81%E8%A3%85/" target="_self">
-          
-          迅投QMT量化平台提供了极简客户端，可直接使用Python调用其提供的交易功能。本文使用Python中的Sanic异步框架将交易接口进一步封装成HTTP访问接口，方便从远程Linux主机调用。  定义全局环境导入xtquant库、aiohttp库、sanic库,设置访问路由为&#x2F;xtquant&#x2F;trade，运行的http端口为7800： 123456789101112131415161718192
-        </a>
-      </p>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2022-07-10 08:00" pubdate>
-              2022-07-10
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-category"></i>
-            
-              <a href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
-            
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/%E8%BF%85%E6%8A%95QMT/">迅投QMT</a>
-            
-              <a href="/tags/%E9%87%8F%E5%8C%96%E4%BA%A4%E6%98%93/">量化交易</a>
-            
-              <a href="/tags/%E4%BA%A4%E6%98%93%E6%8E%A5%E5%8F%A3/">交易接口</a>
             
           </div>
         
@@ -784,6 +782,23 @@
         粤ICP备19097965号
       </a>
     </span>
+    
+      
+        <span>
+          <a
+            href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=44030502009772"
+            rel="nofollow noopener"
+            class="beian-police"
+            target="_blank"
+          >
+            
+              <span style="visibility: hidden; width: 0">|</span>
+              <img src="/img/beian.png" srcset="/img/loading.gif" lazyload alt="police-icon"/>
+            
+            <span>粤公网安备 44030502009772号</span>
+          </a>
+        </span>
+      
     
   </div>
 

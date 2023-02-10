@@ -1,0 +1,661 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.jpg">
+  <link rel="icon" href="/img/favicon.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Keyun Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="金融市场中我们经常会遇到切片数据，例如A股的L1行情，我们处理这类数据的思路无外乎对每一个Ticker，按照时间先后的顺序，在1Min、5Min甚至日线的维度上汇总特征，加工因子。考虑到执行效率问题，手工维护这个流程略显冗繁，本文介绍如何使用Clickhouse数据仓库来自动化的高效完成这类操作，并以K线合成为例完整走一遍流程。  一、基本概念1.1 窗口流数据的计算可以把连续不断的数据按照一定">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Tick行情数据流式处理——应用Clickhouse窗口视图">
+<meta property="og:url" content="https://keyunluo.github.io/2023/01/31/Tick%E8%A1%8C%E6%83%85%E6%95%B0%E6%8D%AE%E6%B5%81%E5%BC%8F%E5%A4%84%E7%90%86--%E5%BA%94%E7%94%A8Clickhouse%E7%AA%97%E5%8F%A3%E8%A7%86%E5%9B%BE/index.html">
+<meta property="og:site_name" content="流光">
+<meta property="og:description" content="金融市场中我们经常会遇到切片数据，例如A股的L1行情，我们处理这类数据的思路无外乎对每一个Ticker，按照时间先后的顺序，在1Min、5Min甚至日线的维度上汇总特征，加工因子。考虑到执行效率问题，手工维护这个流程略显冗繁，本文介绍如何使用Clickhouse数据仓库来自动化的高效完成这类操作，并以K线合成为例完整走一遍流程。  一、基本概念1.1 窗口流数据的计算可以把连续不断的数据按照一定">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://keyunluo.github.io/2023/01/31/img/time_window.png">
+<meta property="og:image" content="https://keyunluo.github.io/2023/01/31/img/streaming_kline.png">
+<meta property="og:image" content="https://keyunluo.github.io/2023/01/31/img/watch_kline.png">
+<meta property="og:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+<meta property="article:published_time" content="2023-01-31T10:00:00.000Z">
+<meta property="article:modified_time" content="2023-02-03T12:46:55.573Z">
+<meta property="article:author" content="Keyun Luo">
+<meta property="article:tag" content="Tick行情">
+<meta property="article:tag" content="Clickhouse">
+<meta property="article:tag" content="量化系统">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://keyunluo.github.io/2023/01/31/img/time_window.png">
+  
+  
+  <title>Tick行情数据流式处理——应用Clickhouse窗口视图 - 流光</title>
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/github-gist.min.css" />
+    
+  
+
+  
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    var CONFIG = {"hostname":"keyunluo.github.io","root":"/","version":"1.8.14","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"right","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"copy_btn":true,"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"baidu":"e2bacb4062644434b87a03658392592e","google":null,"gtag":"G-7YSYVRNN9T","tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","app_key":"ODqlMdJWwrMxHFHzfz3pMvBS","server_url":"https://nqndu9io.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+
+<body>
+  <header style="height: 30vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>我的读书笔记</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner" id="banner" parallax=true
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="page-header text-center fade-in-up">
+            <span class="h2" id="subtitle" title="Tick行情数据流式处理——应用Clickhouse窗口视图">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2023-01-31 18:00" pubdate>
+        2023年1月31日 晚上
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      4.3k 字
+    </span>
+  
+
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      36 分钟
+    </span>
+  
+
+  
+  
+    
+      <!-- LeanCloud 统计文章PV -->
+      <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+        <i class="iconfont icon-eye" aria-hidden="true"></i>
+        <span id="leancloud-page-views"></span> 次
+      </span>
+    
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">Tick行情数据流式处理——应用Clickhouse窗口视图</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2023年2月3日 晚上
+                
+              </p>
+            
+            <div class="markdown-body">
+              <blockquote>
+<p>金融市场中我们经常会遇到切片数据，例如A股的L1行情，我们处理这类数据的思路无外乎对每一个Ticker，按照时间先后的顺序，在1Min、5Min甚至日线的维度上汇总特征，加工因子。考虑到执行效率问题，手工维护这个流程略显冗繁，本文介绍如何使用Clickhouse数据仓库来自动化的高效完成这类操作，并以K线合成为例完整走一遍流程。</p>
+</blockquote>
+<h2 id="一、基本概念"><a href="#一、基本概念" class="headerlink" title="一、基本概念"></a>一、基本概念</h2><h3 id="1-1-窗口"><a href="#1-1-窗口" class="headerlink" title="1.1 窗口"></a>1.1 窗口</h3><p>流数据的计算可以把连续不断的数据按照一定的规则拆分成大量的片段，在片段内进行聚合统计和计算。常见的拆分方法有：</p>
+<ul>
+<li>以时间为单位的不重叠片段，例如：每1分钟、每1小时等，在流式计算里通常称为Tumble Window。在量化里比如1分钟K线、1小时K线，就是此类型。</li>
+<li>以时间为单位的重叠片段，例如：前10分钟、前1小时，每隔一个时间间隔向前滚动，前后两个窗口有一定的重合部分，通常称为Hop Window，很明显，Tumble Window是Hop Window的一个特例。在量化里，计算滑动均值，就是这类任务的一个代表。</li>
+<li>以会话为单位的不连续片段，例如每个HTTP访问会话，可能被其他会话打断，在量化交易中较少涉及，本文不再讨论。</li>
+</ul>
+<p><img src="../img/time_window.png" srcset="/img/loading.gif" lazyload></p>
+<h3 id="1-2-时间"><a href="#1-2-时间" class="headerlink" title="1.2 时间"></a>1.2 时间</h3><ul>
+<li>处理时间Processing Time，指的是进行数据处理操作时，当时的系统时间。</li>
+<li>事件时间Event Time，指的是业务发生时间，每一条业务记录上会携带一个时间戳。</li>
+<li>提取时间Ingestion Time，指的是数据进入处理系统时，当时的系统时间。</li>
+</ul>
+<p>很明显，量化系统中，处理历史数据一定会用到事件时间，处理实时数据大部分情况也应用事件时间，少部分情况下可以用处理时间近似代替。本文将默认时间模式为事件时间。</p>
+<h3 id="1-3-视图"><a href="#1-3-视图" class="headerlink" title="1.3 视图"></a>1.3 视图</h3><p>ClickHouse支持创建普通视图(normal view)、物化视图(materialized view)、实时视图(live view)和窗口视图(window view)，其中实时视图和窗口视图目前还是试验功能，不能保证稳定性。</p>
+<ul>
+<li>Normal View：视图本身并不会存储任何的数据，它们仅仅只是读取了所关联的表格的查询结果而已。一个视图其实保存的是一个 select查询的语句，而不是它查询的结果。</li>
+<li>Materialized View：物化视图和普通视图最大的区别是物化视图实际存储了一份数据。用户查询的时候和表没有区别，更像是一张时刻在预计算的表。在创建物化视图的时候也需要定义存储引擎。</li>
+<li>Live View: 实时视图是一种特殊的视图，类似于ZooKeeper中的注册监听和Redis中的发布订阅，能够将一条SQL查询结果作为监控目标，当 Live view 变化时可以及时感知到。</li>
+<li>Window View：窗口可以按时间窗口聚合数据，类似Flink中的Window，并在窗口结束时输出结果。它将部分聚合结果（预聚合）存储在一个内部(或指定的)表中，以减少延迟，并可以将处理结果推送到指定的表或使用WATCH语句查询推送通知。</li>
+</ul>
+<p>通过上面的介绍，我们知道通过窗口视图和时间函数，Clickhouse也拥有了流式数据处理能力。但窗口视图处于实验阶段，需要我们手动开启这项功能，开启的方式有两种：</p>
+<ul>
+<li>在sql语句中添加一条控制开关： <code>set allow_experimental_window_view = 1</code></li>
+<li>在Clickhouse中增加一个用户配置：<ul>
+<li>新建文件：nano /etc/clickhouse-server/users.d/allow_experimental_window_functions.xml</li>
+<li>写入如下配置：<figure class="highlight xml"><table><tr><td class="gutter"><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></div></td><td class="code"><pre><code class="hljs xml"><span class="hljs-meta">&lt;?xml version=&quot;1.0&quot;?&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">yandex</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">profiles</span>&gt;</span><br>      <span class="hljs-tag">&lt;<span class="hljs-name">default</span>&gt;</span><br>          <span class="hljs-tag">&lt;<span class="hljs-name">allow_experimental_window_view</span>&gt;</span>1<span class="hljs-tag">&lt;/<span class="hljs-name">allow_experimental_window_view</span>&gt;</span><br>      <span class="hljs-tag">&lt;/<span class="hljs-name">default</span>&gt;</span><br>  <span class="hljs-tag">&lt;/<span class="hljs-name">profiles</span>&gt;</span><br>  <span class="hljs-tag">&lt;/<span class="hljs-name">yandex</span>&gt;</span><br></code></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<p>其中增加用户配置方案是永久性的，写入后就默认开启此功能。</p>
+<h2 id="二、设计数据表"><a href="#二、设计数据表" class="headerlink" title="二、设计数据表"></a>二、设计数据表</h2><h3 id="2-1-原始tick行情数据加工"><a href="#2-1-原始tick行情数据加工" class="headerlink" title="2.1 原始tick行情数据加工"></a>2.1 原始tick行情数据加工</h3><p>通常交易所tick行情提供的字段有：</p>
+<ul>
+<li>open：开盘价</li>
+<li>last：最新价</li>
+<li>high：最高价</li>
+<li>low：最低价</li>
+<li>prev_close：昨收价</li>
+<li>volume：累计成交量</li>
+<li>total_turnover：累计成交额</li>
+<li>change_rate：涨跌幅</li>
+<li>ask_price_1-5：卖出价1-5档</li>
+<li>ask_volume_1-5: 卖出量1-5档</li>
+<li>ask_price_1-5：卖出价1-5档</li>
+<li>ask_volume_1-5: 卖出量1-5档</li>
+</ul>
+<p>实时处理时通常要使用一个全局字典，将累计成交量、累计成交额转换成切片瞬时成交量和成交金额, 离线处理我们可用SQL进行简单的转换。</p>
+<p>首先创建一张tick数据表(股票代码、交易时间、tick价格、tick成交量、涨跌幅)：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-keyword">create</span> <span class="hljs-keyword">table</span> tick.sse50_data<br>(<br>    ticker String,<br>    trade_time DateTime(<span class="hljs-string">&#x27;Asia/Shanghai&#x27;</span>),<br>    tick_price_close Float32,<br>    tick_volume Int32,<br>    close_chg_rate Float32<br>)<br>ENGINE <span class="hljs-operator">=</span> AggregatingMergeTree()<br><span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> (trade_time, ticker)<br></code></pre></td></tr></table></figure>
+
+<p>然后使用如下SQL进行简单加工，即通过<code>volume - ifNull(any(volume) OVER (PARTITION BY stock_code ORDER BY trade_time ASC ROWS BETWEEN 1 PRECEDING AND 1 PRECEDING), 0)</code> 语句获得瞬时成交量：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-keyword">select</span> <br>    stock_code <span class="hljs-keyword">as</span> ticker, <br>    trade_time, <br>    <span class="hljs-keyword">last</span> <span class="hljs-keyword">as</span> tick_price_close,<br>    toInt32(volume <span class="hljs-operator">-</span> ifNull(<span class="hljs-keyword">any</span>(volume) <span class="hljs-keyword">OVER</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> stock_code <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> trade_time <span class="hljs-keyword">ASC</span> <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> <span class="hljs-number">1</span> PRECEDING <span class="hljs-keyword">AND</span> <span class="hljs-number">1</span> PRECEDING), <span class="hljs-number">0</span>)) <span class="hljs-keyword">AS</span> tick_volume, <br>    round(<span class="hljs-number">100</span> <span class="hljs-operator">*</span> change_rate, <span class="hljs-number">3</span>)  <span class="hljs-keyword">as</span> close_chg_rate<br><span class="hljs-keyword">from</span> tick.sse_50<br><span class="hljs-keyword">order</span> <span class="hljs-keyword">by</span> trade_time <span class="hljs-keyword">ASC</span>,  ticker<br></code></pre></td></tr></table></figure>
+
+<p>这里我们可以把数据先存储到data对象中，后面用来做行情回放，动态写入<code>tick.sse50_data</code>表中</p>
+<h3 id="2-2-设计1分钟窗口视图"><a href="#2-2-设计1分钟窗口视图" class="headerlink" title="2.2 设计1分钟窗口视图"></a>2.2 设计1分钟窗口视图</h3><p>首先创建一张1分钟特征表用来存储加工得到的K线特征(包含1分钟开盘价、收盘价、最高价、最低价、平均价、价格标准差、峰度等统计量):</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-keyword">create</span> <span class="hljs-keyword">table</span> if <span class="hljs-keyword">not</span> <span class="hljs-keyword">exists</span> tick.factor_m1<br>(<br>    ticker String,<br>    trade_timestamp DateTime(<span class="hljs-string">&#x27;Asia/Shanghai&#x27;</span>),<br>    m1_price_open Float32,<br>    m1_price_close Float32,<br>    m1_price_high Float32,<br>    m1_price_low Float32,<br>    m1_price_avg Float32,<br>    m1_volume Int32,<br>    m1_chg_ptp Float32,<br>    m1_chg_avg Float32,<br>    m1_price_std Float32,<br>    m1_price_skew Float32,<br>    m1_price_kurt Float32<br>)<br>ENGINE <span class="hljs-operator">=</span> AggregatingMergeTree()<br><span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> (trade_timestamp, ticker)<br></code></pre></td></tr></table></figure>
+
+<p>然后创建我们的主角，窗口视图：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">WINDOW</span> <span class="hljs-keyword">VIEW</span> IF <span class="hljs-keyword">NOT</span> <span class="hljs-keyword">EXISTS</span> stock_m1 <span class="hljs-keyword">TO</span> tick.factor_m1  WATERMARK<span class="hljs-operator">=</span><span class="hljs-type">INTERVAL</span> <span class="hljs-string">&#x27;2&#x27;</span> <span class="hljs-keyword">SECOND</span>  <span class="hljs-keyword">AS</span><br><span class="hljs-keyword">SELECT</span> <br>    ticker, <br>    tumbleStart(trade_time_id) <span class="hljs-keyword">as</span> trade_timestamp, <br>    <span class="hljs-keyword">any</span>(tick_price_close) <span class="hljs-keyword">as</span> m1_price_open, <br>    anyLast(tick_price_close) <span class="hljs-keyword">as</span> m1_price_close, <br>    <span class="hljs-built_in">max</span>(tick_price_close) <span class="hljs-keyword">as</span> m1_price_high,<br>    <span class="hljs-built_in">min</span>(tick_price_close) <span class="hljs-keyword">as</span> m1_price_low, <br>    <span class="hljs-number">0.5</span> <span class="hljs-operator">*</span> (m1_price_open <span class="hljs-operator">+</span> m1_price_close) <span class="hljs-keyword">as</span> m1_price_avg, <br>    <span class="hljs-built_in">sum</span>(tick_volume) <span class="hljs-keyword">as</span> m1_volume,<br>    <span class="hljs-built_in">max</span>(close_chg_rate) <span class="hljs-operator">-</span> <span class="hljs-built_in">min</span>(close_chg_rate) <span class="hljs-keyword">as</span> m1_chg_ptp,<br>    <span class="hljs-built_in">avg</span>(close_chg_rate) <span class="hljs-keyword">as</span> m1_chg_avg,<br>    stddevPop(tick_price_close) <span class="hljs-keyword">as</span> m1_price_std,<br>    skewPop(tick_price_close) <span class="hljs-keyword">as</span> m1_price_skew,<br>    kurtPop(tick_price_close) <span class="hljs-keyword">as</span> m1_price_kurt<br><span class="hljs-keyword">FROM</span> tick.sse50_data<br><span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> tumble(trade_time, <span class="hljs-type">INTERVAL</span> <span class="hljs-string">&#x27;1&#x27;</span> <span class="hljs-keyword">MINUTE</span>) <span class="hljs-keyword">as</span> trade_time_id, ticker<br><span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> trade_time_id, ticker<br></code></pre></td></tr></table></figure>
+<p>其中 <code>tumble(trade_time, INTERVAL &#39;1&#39; MINUTE)</code> 表示每1分钟执行一次。</p>
+<h2 id="三、效果测试"><a href="#三、效果测试" class="headerlink" title="三、效果测试"></a>三、效果测试</h2><h3 id="3-1-客户端模拟实时插入"><a href="#3-1-客户端模拟实时插入" class="headerlink" title="3.1 客户端模拟实时插入"></a>3.1 客户端模拟实时插入</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">for</span> item <span class="hljs-keyword">in</span> tqdm(data):<br>    db_client.execute(<span class="hljs-string">&quot;insert into tick.sse50_data values&quot;</span>, [item])<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-2-查询"><a href="#3-2-查询" class="headerlink" title="3.2 查询"></a>3.2 查询</h3><p>在另一个控制台上查询<code>tick.factor_m1</code>表，可以发现数据已经实时写入特征表中了(K线与看盘软件有1分钟偏移，因为这里时间戳表示该分钟的起始位置)：</p>
+<p><img src="../img/streaming_kline.png" srcset="/img/loading.gif" lazyload></p>
+<p>通过WATCH语句，在控制台中我们能看到K线的实时生成：</p>
+<p><img src="../img/watch_kline.png" srcset="/img/loading.gif" lazyload></p>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><p>虽然仍处于实验阶段，但Clickhouse的窗口视图显示出强大的流式处理能力，我们可以利用其轻松搭建一个tick级的高频交易系统，自动提取特征入库，省去手工维护之烦恼。</p>
+<hr>
+<p>欢迎关注我的公众号“<strong>量化实战</strong>”，原创技术文章第一时间推送。<br><img src="/img/qrcode.jpg" srcset="/img/loading.gif" lazyload></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/Tick%E8%A1%8C%E6%83%85/">Tick行情</a>
+                    
+                      <a class="hover-with-bg" href="/tags/Clickhouse/">Clickhouse</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E9%87%8F%E5%8C%96%E7%B3%BB%E7%BB%9F/">量化系统</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">
+                  
+                    本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！
+                  
+                </p>
+              
+              
+                <div class="post-prevnext">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/02/03/%E6%B5%85%E8%B0%88Tick%E8%A1%8C%E6%83%85%E6%95%B0%E6%8D%AE%E6%B8%85%E6%B4%97--%E5%BA%94%E7%94%A8Clickhouse%E5%88%86%E6%9E%90%E5%87%BD%E6%95%B0/">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">浅谈Tick行情数据清洗——应用Clickhouse分析函数</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/01/02/%E5%9F%BA%E4%BA%8E%E9%87%91%E8%9E%8D%E6%96%B0%E9%97%BB%E6%95%B0%E6%8D%AE%E7%9A%84BERT%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E5%92%8C%E9%99%8D%E7%BB%B4/">
+                        <span class="hidden-mobile">基于金融新闻数据的BERT模型微调和降维</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments" lazyload>
+                
+                  
+                
+                
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appKey":"ODqlMdJWwrMxHFHzfz3pMvBS","path":"window.location.pathname","placeholder":"说点什么","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":null,"emojiCDN":null,"emojiMaps":null,"enableQQ":false,"appid":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appkey":"ODqlMdJWwrMxHFHzfz3pMvBS"},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          Fluid.plugins.initFancyBox('#valine .vcontent img:not(.vemoji)');
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+  </main>
+
+  <footer class="text-center mt-5 py-3">
+  <div class="footer-content">
+     <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+  </div>
+  
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- LeanCloud 统计PV -->
+        <span id="leancloud-site-pv-container" style="display: none">
+            总访问量 
+            <span id="leancloud-site-pv"></span>
+             次
+          </span>
+      
+      
+        <!-- LeanCloud 统计UV -->
+        <span id="leancloud-site-uv-container" style="display: none">
+            总访客数 
+            <span id="leancloud-site-uv"></span>
+             人
+          </span>
+      
+
+    
+  </div>
+
+
+  
+  <!-- 备案信息 -->
+  <div class="beian">
+    <span>
+      <a href="http://beian.miit.gov.cn/" target="_blank" rel="nofollow noopener">
+        粤ICP备19097965号
+      </a>
+    </span>
+    
+      
+        <span>
+          <a
+            href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=44030502009772"
+            rel="nofollow noopener"
+            class="beian-police"
+            target="_blank"
+          >
+            
+              <span style="visibility: hidden; width: 0">|</span>
+              <img src="/img/beian.png" srcset="/img/loading.gif" lazyload alt="police-icon"/>
+            
+            <span>粤公网安备 44030502009772号</span>
+          </a>
+        </span>
+      
+    
+  </div>
+
+
+  
+</footer>
+
+
+  <!-- SCRIPTS -->
+  
+  <script  src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" ></script>
+<script  src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+<!-- Plugins -->
+
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  
+    <script  src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js" ></script>
+  
+  
+    <script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js" ></script>
+  
+
+
+
+
+  <script defer src="/js/leancloud.js" ></script>
+
+
+
+  <script  src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var title = document.getElementById('subtitle').title;
+      
+        typing(title);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <!-- Baidu Analytics -->
+    <script defer>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?e2bacb4062644434b87a03658392592e";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+  
+
+  
+
+  
+    <!-- Google gtag.js -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YSYVRNN9T"></script>
+    <script defer>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-7YSYVRNN9T');
+    </script>
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+<!-- 主题的启动项 保持在最底部 -->
+<script  src="/js/boot.js" ></script>
+
+
+</body>
+</html>

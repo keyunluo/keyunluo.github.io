@@ -1,0 +1,621 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.jpg">
+  <link rel="icon" href="/img/favicon.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Keyun Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="数据清洗和理解是数据科学中的基础工作，重要而繁琐，经常占据了80%的工作量，在量化交易中也不例外。本文介绍如何利用Clickhouse数据仓库进行高效的数据清洗工作，以Tick行情处理为例，重点谈谈分析函数的使用。  一、分析函数概况1.1 与聚合函数的区别说到分析函数，就不得不提到聚合函数。聚合函数是汇总计算返回一个计算结果，而分析函数会根据表的行数，每行返回一个计算结果。  聚合函数特点：G">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈Tick行情数据清洗——应用Clickhouse分析函数">
+<meta property="og:url" content="https://keyunluo.github.io/2023/02/03/%E6%B5%85%E8%B0%88Tick%E8%A1%8C%E6%83%85%E6%95%B0%E6%8D%AE%E6%B8%85%E6%B4%97--%E5%BA%94%E7%94%A8Clickhouse%E5%88%86%E6%9E%90%E5%87%BD%E6%95%B0/index.html">
+<meta property="og:site_name" content="流光">
+<meta property="og:description" content="数据清洗和理解是数据科学中的基础工作，重要而繁琐，经常占据了80%的工作量，在量化交易中也不例外。本文介绍如何利用Clickhouse数据仓库进行高效的数据清洗工作，以Tick行情处理为例，重点谈谈分析函数的使用。  一、分析函数概况1.1 与聚合函数的区别说到分析函数，就不得不提到聚合函数。聚合函数是汇总计算返回一个计算结果，而分析函数会根据表的行数，每行返回一个计算结果。  聚合函数特点：G">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://keyunluo.github.io/2023/02/03/img/kline_missing.png">
+<meta property="og:image" content="https://keyunluo.github.io/2023/02/03/img/kline_padding.png">
+<meta property="og:image" content="https://keyunluo.github.io/img/qrcode.jpg">
+<meta property="article:published_time" content="2023-02-03T10:00:00.000Z">
+<meta property="article:modified_time" content="2023-02-03T15:53:13.787Z">
+<meta property="article:author" content="Keyun Luo">
+<meta property="article:tag" content="Tick行情">
+<meta property="article:tag" content="Clickhouse">
+<meta property="article:tag" content="量化系统">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://keyunluo.github.io/2023/02/03/img/kline_missing.png">
+  
+  
+  <title>浅谈Tick行情数据清洗——应用Clickhouse分析函数 - 流光</title>
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/github-gist.min.css" />
+    
+  
+
+  
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    var CONFIG = {"hostname":"keyunluo.github.io","root":"/","version":"1.8.14","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"right","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"copy_btn":true,"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"baidu":"e2bacb4062644434b87a03658392592e","google":null,"gtag":"G-7YSYVRNN9T","tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","app_key":"ODqlMdJWwrMxHFHzfz3pMvBS","server_url":"https://nqndu9io.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+
+<body>
+  <header style="height: 30vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>我的读书笔记</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner" id="banner" parallax=true
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="page-header text-center fade-in-up">
+            <span class="h2" id="subtitle" title="浅谈Tick行情数据清洗——应用Clickhouse分析函数">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2023-02-03 18:00" pubdate>
+        2023年2月3日 晚上
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      5.2k 字
+    </span>
+  
+
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      44 分钟
+    </span>
+  
+
+  
+  
+    
+      <!-- LeanCloud 统计文章PV -->
+      <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+        <i class="iconfont icon-eye" aria-hidden="true"></i>
+        <span id="leancloud-page-views"></span> 次
+      </span>
+    
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">浅谈Tick行情数据清洗——应用Clickhouse分析函数</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2023年2月3日 晚上
+                
+              </p>
+            
+            <div class="markdown-body">
+              <blockquote>
+<p>数据清洗和理解是数据科学中的基础工作，重要而繁琐，经常占据了80%的工作量，在量化交易中也不例外。本文介绍如何利用Clickhouse数据仓库进行高效的数据清洗工作，以Tick行情处理为例，重点谈谈分析函数的使用。</p>
+</blockquote>
+<h2 id="一、分析函数概况"><a href="#一、分析函数概况" class="headerlink" title="一、分析函数概况"></a>一、分析函数概况</h2><h3 id="1-1-与聚合函数的区别"><a href="#1-1-与聚合函数的区别" class="headerlink" title="1.1 与聚合函数的区别"></a>1.1 与聚合函数的区别</h3><p>说到分析函数，就不得不提到聚合函数。聚合函数是汇总计算返回一个计算结果，而分析函数会根据表的行数，每行返回一个计算结果。</p>
+<ul>
+<li>聚合函数特点：GROUP BY 分组，统计组内的max、min、std等统计值，赋予到聚合组中</li>
+<li>分析函数特点：PARTITION BY 分组，统计组内的max、min、std等统计值，赋予到当前行中</li>
+</ul>
+<p>很明显，分析函数有“序”的概念，通过分组的“序”获取上下文指定范围，进而获取聚合值。</p>
+<h3 id="1-2-窗口函数的基本用法"><a href="#1-2-窗口函数的基本用法" class="headerlink" title="1.2 窗口函数的基本用法"></a>1.2 窗口函数的基本用法</h3><p>语法格式：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></div></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-operator">&lt;</span>窗口函数<span class="hljs-operator">&gt;</span> <span class="hljs-keyword">OVER</span> ([<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> <span class="hljs-operator">&lt;</span>列清单<span class="hljs-operator">&gt;</span>]<br>                         <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> <span class="hljs-operator">&lt;</span>排序用列清单<span class="hljs-operator">&gt;</span>)<br></code></pre></td></tr></table></figure>
+
+<h4 id="1-2-1-计算排名"><a href="#1-2-1-计算排名" class="headerlink" title="1.2.1 计算排名"></a>1.2.1 计算排名</h4><p>计算一分钟K线各个股票的成交额从大到小排名：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-keyword">select</span> datetime, order_book_id, <span class="hljs-built_in">RANK</span>() <span class="hljs-keyword">OVER</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> datetime <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> total_turnover <span class="hljs-keyword">desc</span>) <span class="hljs-keyword">as</span> deal_rank<br><span class="hljs-keyword">from</span> rqdata.stock_kline_1m <br><span class="hljs-keyword">where</span> <span class="hljs-type">date</span><span class="hljs-operator">=</span><span class="hljs-string">&#x27;2023-01-11&#x27;</span> <span class="hljs-keyword">and</span> datetime<span class="hljs-operator">&lt;=</span><span class="hljs-string">&#x27;2023-01-11 09:32:00&#x27;</span> <span class="hljs-keyword">and</span> order_book_id <span class="hljs-keyword">in</span> (<span class="hljs-string">&#x27;601318.XSHG&#x27;</span>, <span class="hljs-string">&#x27;600536.XSHG&#x27;</span>, <span class="hljs-string">&#x27;601012.XSHG&#x27;</span>)<br></code></pre></td></tr></table></figure>
+<p>其中<code>desc</code>表示逆序排列(从大到小)</p>
+<h4 id="1-2-2-获取相邻行"><a href="#1-2-2-获取相邻行" class="headerlink" title="1.2.2 获取相邻行"></a>1.2.2 获取相邻行</h4><p>计算一分钟K线每分钟相比上一分钟成交额的占比：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-keyword">select</span> datetime, order_book_id, total_turnover <span class="hljs-operator">/</span> anyLast(total_turnover) <span class="hljs-keyword">OVER</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> order_book_id <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> datetime <span class="hljs-keyword">asc</span> <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> UNBOUNDED PRECEDING <span class="hljs-keyword">AND</span> <span class="hljs-number">1</span> PRECEDING) <span class="hljs-keyword">as</span> deal_rate<br><span class="hljs-keyword">from</span> rqdata.stock_kline_1m <br><span class="hljs-keyword">where</span> <span class="hljs-type">date</span><span class="hljs-operator">=</span><span class="hljs-string">&#x27;2023-01-11&#x27;</span> <span class="hljs-keyword">and</span> datetime<span class="hljs-operator">&lt;=</span><span class="hljs-string">&#x27;2023-01-11 09:32:00&#x27;</span> <span class="hljs-keyword">and</span> order_book_id <span class="hljs-keyword">in</span> (<span class="hljs-string">&#x27;601318.XSHG&#x27;</span>, <span class="hljs-string">&#x27;600536.XSHG&#x27;</span>, <span class="hljs-string">&#x27;601012.XSHG&#x27;</span>)<br></code></pre></td></tr></table></figure>
+
+<p>其中<code>anyLast</code>表示取分组中的最后一个不为Null的值，<code>asc</code>表示顺序排列(从小到大)，<code>ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING</code> 表示限制数数据在当前行的前面。</p>
+<h4 id="1-2-3-计算窗口报告值"><a href="#1-2-3-计算窗口报告值" class="headerlink" title="1.2.3 计算窗口报告值"></a>1.2.3 计算窗口报告值</h4><p>计算一分钟K线未来10分钟的最高收益：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-keyword">select</span> datetime, order_book_id, round(<span class="hljs-number">100</span><span class="hljs-operator">*</span>(<span class="hljs-built_in">max</span>(high) <span class="hljs-keyword">OVER</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> order_book_id <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> datetime <span class="hljs-keyword">asc</span> <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> <span class="hljs-number">1</span> FOLLOWING <span class="hljs-keyword">AND</span> <span class="hljs-number">10</span> FOLLOWING) <span class="hljs-operator">/</span> <span class="hljs-keyword">close</span> <span class="hljs-operator">-</span> <span class="hljs-number">1</span>), <span class="hljs-number">3</span>) <span class="hljs-keyword">as</span> min10_high_rate<br><span class="hljs-keyword">from</span> rqdata.stock_kline_1m <br><span class="hljs-keyword">where</span> <span class="hljs-type">date</span><span class="hljs-operator">=</span><span class="hljs-string">&#x27;2023-01-11&#x27;</span> <span class="hljs-keyword">and</span> datetime<span class="hljs-operator">&lt;=</span><span class="hljs-string">&#x27;2023-01-11 09:40:00&#x27;</span> <span class="hljs-keyword">and</span> order_book_id <span class="hljs-keyword">in</span> (<span class="hljs-string">&#x27;601318.XSHG&#x27;</span>, <span class="hljs-string">&#x27;600536.XSHG&#x27;</span>, <span class="hljs-string">&#x27;601012.XSHG&#x27;</span>)<br></code></pre></td></tr></table></figure>
+
+<p>其中<code>max(high)</code>取分组中的最大值，<code>ROWS BETWEEN 1 FOLLOWING AND 10 FOLLOWING</code> 表示在接下来的10分钟里。</p>
+<h2 id="二、数据清洗案例"><a href="#二、数据清洗案例" class="headerlink" title="二、数据清洗案例"></a>二、数据清洗案例</h2><h3 id="2-1-关于Tick行情"><a href="#2-1-关于Tick行情" class="headerlink" title="2.1 关于Tick行情"></a>2.1 关于Tick行情</h3><p>Tick行情在国内市场通常称为切片数据，把距离上一个时间点的市场状态以及快照行情提供给用户，沪深股票交易所的切片间隔是3s，期货市场则更短，最快可以达到0.5s。Tick数据不同于逐笔委托和逐笔成交数据，最快为3s，如果一段时间没有成交，这个值就更久远。</p>
+<p>由此造成一个问题，<code>某个1分钟时间段里，可能无法直接由Tick行情得到K线数据</code>，因此，如果某分钟没有记录，我们需要在其后面补充一条记录，保持K线的完整性。</p>
+<h3 id="2-2-选出缺失项"><a href="#2-2-选出缺失项" class="headerlink" title="2.2 选出缺失项"></a>2.2 选出缺失项</h3><p>首先我们定义<code>表a</code>为所有股票代码，<code>表b</code>为所有分钟日期，两表做笛卡尔乘积可以得到完整的数据主键，这里通过<code>cross join</code>来实现。再通过左反连接<code>left anti join</code>排除掉已有的数据主键，这样就选出了需要补充的项：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-keyword">select</span> <br>    a.stock_code <span class="hljs-keyword">as</span> stock_code, <br>    toDate(<span class="hljs-string">&#x27;2016-03-29&#x27;</span>) <span class="hljs-keyword">as</span> trade_date, <br>    b.trade_time <span class="hljs-operator">+</span>  toIntervalSecond(<span class="hljs-number">59</span>) <span class="hljs-keyword">as</span> trade_time,  <br>    <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> <span class="hljs-keyword">open</span>, <br>    <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> <span class="hljs-keyword">last</span>, <br>    <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> high, <br>    <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> low, <br>    <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> prev_close, <br>    <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> volume, <br>    <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> total_turnover<br><span class="hljs-keyword">from</span> <br>    (<br>        <span class="hljs-keyword">select</span> <span class="hljs-keyword">distinct</span> stock_code <span class="hljs-keyword">from</span> rqdata.sse50_tick <span class="hljs-keyword">where</span> trade_date<span class="hljs-operator">=</span><span class="hljs-string">&#x27;2016-03-29&#x27;</span><br>    ) a <br><span class="hljs-keyword">cross</span> <span class="hljs-keyword">join</span><br>    (<br>        <span class="hljs-keyword">with</span> toHour(trade_time) <span class="hljs-operator">*</span> <span class="hljs-number">60</span> <span class="hljs-operator">+</span> toMinute(trade_time) <span class="hljs-keyword">as</span> trade_minute<br>        <span class="hljs-keyword">select</span> <span class="hljs-keyword">distinct</span> toStartOfMinute(trade_time) <span class="hljs-keyword">as</span> trade_time <span class="hljs-keyword">from</span> rqdata.sse50_tick <span class="hljs-keyword">where</span> trade_date<span class="hljs-operator">=</span><span class="hljs-string">&#x27;2016-03-29&#x27;</span> <span class="hljs-keyword">and</span> trade_minute <span class="hljs-operator">!=</span> <span class="hljs-number">11</span> <span class="hljs-operator">*</span> <span class="hljs-number">60</span> <span class="hljs-operator">+</span> <span class="hljs-number">30</span> <span class="hljs-keyword">and</span> trade_minute <span class="hljs-operator">!=</span> <span class="hljs-number">9</span> <span class="hljs-operator">*</span> <span class="hljs-number">60</span> <span class="hljs-operator">+</span> <span class="hljs-number">29</span> <span class="hljs-keyword">and</span> trade_minute <span class="hljs-operator">!=</span> <span class="hljs-number">12</span> <span class="hljs-operator">*</span> <span class="hljs-number">60</span> <span class="hljs-operator">+</span> <span class="hljs-number">59</span> <span class="hljs-keyword">and</span>  trade_minute<span class="hljs-operator">&gt;=</span> <span class="hljs-number">9</span><span class="hljs-operator">*</span><span class="hljs-number">60</span> <span class="hljs-operator">+</span> <span class="hljs-number">25</span><br>    ) b<br><span class="hljs-keyword">left</span> anti <span class="hljs-keyword">join</span> <br>    (<br>        <span class="hljs-keyword">select</span> <span class="hljs-keyword">distinct</span> stock_code, toStartOfMinute(trade_time) <span class="hljs-keyword">as</span> trade_time <span class="hljs-keyword">from</span> rqdata.sse50_tick <span class="hljs-keyword">where</span> trade_date<span class="hljs-operator">=</span><span class="hljs-string">&#x27;2016-03-29&#x27;</span><br>    ) c<br>    <span class="hljs-keyword">on</span> a.stock_code <span class="hljs-operator">=</span> c.stock_code <span class="hljs-keyword">and</span> b.trade_time <span class="hljs-operator">=</span> c.trade_time<br></code></pre></td></tr></table></figure>
+
+<p>可以发现，部分股票没有15:00的收盘价<br><img src="../img/kline_missing.png" srcset="/img/loading.gif" lazyload></p>
+<h3 id="2-3-利用分析函数填充缺失项"><a href="#2-3-利用分析函数填充缺失项" class="headerlink" title="2.3 利用分析函数填充缺失项"></a>2.3 利用分析函数填充缺失项</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-keyword">select</span> <br>    stock_code,  trade_date, trade_time, <br>    anyLast(<span class="hljs-keyword">open</span>) <span class="hljs-keyword">over</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> stock_code  <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> trade_time <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> UNBOUNDED PRECEDING <span class="hljs-keyword">AND</span> <span class="hljs-keyword">CURRENT</span> <span class="hljs-type">ROW</span>) <span class="hljs-keyword">as</span> <span class="hljs-keyword">open</span>,<br>    ...<br><span class="hljs-keyword">from</span><br>    ...<br></code></pre></td></tr></table></figure>
+
+<h3 id="2-4-与原始数据并联后的完整语句"><a href="#2-4-与原始数据并联后的完整语句" class="headerlink" title="2.4 与原始数据并联后的完整语句"></a>2.4 与原始数据并联后的完整语句</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><code class="hljs SQL"><span class="hljs-keyword">select</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">from</span> <br>(<br>    <span class="hljs-keyword">select</span> <br>        stock_code,  trade_date, trade_time, <br>        anyLast(<span class="hljs-keyword">open</span>) <span class="hljs-keyword">over</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> stock_code  <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> trade_time <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> UNBOUNDED PRECEDING <span class="hljs-keyword">AND</span> <span class="hljs-keyword">CURRENT</span> <span class="hljs-type">ROW</span>) <span class="hljs-keyword">as</span> <span class="hljs-keyword">open</span>,<br>        anyLast(<span class="hljs-keyword">last</span>) <span class="hljs-keyword">over</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> stock_code  <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> trade_time <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> UNBOUNDED PRECEDING <span class="hljs-keyword">AND</span> <span class="hljs-keyword">CURRENT</span> <span class="hljs-type">ROW</span>) <span class="hljs-keyword">as</span> <span class="hljs-keyword">last</span>,<br>        anyLast(high) <span class="hljs-keyword">over</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> stock_code  <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> trade_time <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> UNBOUNDED PRECEDING <span class="hljs-keyword">AND</span> <span class="hljs-keyword">CURRENT</span> <span class="hljs-type">ROW</span>) <span class="hljs-keyword">as</span> high,<br>        anyLast(low) <span class="hljs-keyword">over</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> stock_code  <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> trade_time <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> UNBOUNDED PRECEDING <span class="hljs-keyword">AND</span> <span class="hljs-keyword">CURRENT</span> <span class="hljs-type">ROW</span>) <span class="hljs-keyword">as</span> low,<br>        anyLast(prev_close) <span class="hljs-keyword">over</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> stock_code  <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> trade_time <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> UNBOUNDED PRECEDING <span class="hljs-keyword">AND</span> <span class="hljs-keyword">CURRENT</span> <span class="hljs-type">ROW</span>) <span class="hljs-keyword">as</span> prev_close,<br>        anyLast(volume) <span class="hljs-keyword">over</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> stock_code  <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> trade_time <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> UNBOUNDED PRECEDING <span class="hljs-keyword">AND</span> <span class="hljs-keyword">CURRENT</span> <span class="hljs-type">ROW</span>) <span class="hljs-keyword">as</span> volume,<br>        anyLast(total_turnover) <span class="hljs-keyword">over</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> stock_code  <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> trade_time <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> UNBOUNDED PRECEDING <span class="hljs-keyword">AND</span> <span class="hljs-keyword">CURRENT</span> <span class="hljs-type">ROW</span>) <span class="hljs-keyword">as</span> total_turnover<br>    <span class="hljs-keyword">from</span> <br>    (<br>        <span class="hljs-keyword">select</span> <br>        a.stock_code <span class="hljs-keyword">as</span> stock_code, <br>        toDate(<span class="hljs-string">&#x27;2016-03-29&#x27;</span>) <span class="hljs-keyword">as</span> trade_date, <br>        b.trade_time <span class="hljs-operator">+</span>  toIntervalSecond(<span class="hljs-number">59</span>) <span class="hljs-keyword">as</span> trade_time,  <br>        <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> <span class="hljs-keyword">open</span>, <br>        <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> <span class="hljs-keyword">last</span>, <br>        <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> high, <br>        <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> low, <br>        <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> prev_close, <br>        <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> volume, <br>        <span class="hljs-keyword">null</span> <span class="hljs-keyword">as</span> total_turnover<br>    <span class="hljs-keyword">from</span> <br>        (<br>            <span class="hljs-keyword">select</span> <span class="hljs-keyword">distinct</span> stock_code <span class="hljs-keyword">from</span> rqdata.sse50_tick <span class="hljs-keyword">where</span> trade_date<span class="hljs-operator">=</span><span class="hljs-string">&#x27;2016-03-29&#x27;</span><br>        ) a <br>    <span class="hljs-keyword">cross</span> <span class="hljs-keyword">join</span><br>        (<br>            <span class="hljs-keyword">with</span> toHour(trade_time) <span class="hljs-operator">*</span> <span class="hljs-number">60</span> <span class="hljs-operator">+</span> toMinute(trade_time) <span class="hljs-keyword">as</span> trade_minute<br>            <span class="hljs-keyword">select</span> <span class="hljs-keyword">distinct</span> toStartOfMinute(trade_time) <span class="hljs-keyword">as</span> trade_time <span class="hljs-keyword">from</span> rqdata.sse50_tick <span class="hljs-keyword">where</span> trade_date<span class="hljs-operator">=</span><span class="hljs-string">&#x27;2016-03-29&#x27;</span> <span class="hljs-keyword">and</span> trade_minute <span class="hljs-operator">!=</span> <span class="hljs-number">11</span> <span class="hljs-operator">*</span> <span class="hljs-number">60</span> <span class="hljs-operator">+</span> <span class="hljs-number">30</span> <span class="hljs-keyword">and</span> trade_minute <span class="hljs-operator">!=</span> <span class="hljs-number">9</span> <span class="hljs-operator">*</span> <span class="hljs-number">60</span> <span class="hljs-operator">+</span> <span class="hljs-number">29</span> <span class="hljs-keyword">and</span> trade_minute <span class="hljs-operator">!=</span> <span class="hljs-number">12</span> <span class="hljs-operator">*</span> <span class="hljs-number">60</span> <span class="hljs-operator">+</span> <span class="hljs-number">59</span> <span class="hljs-keyword">and</span>  trade_minute<span class="hljs-operator">&gt;=</span> <span class="hljs-number">9</span><span class="hljs-operator">*</span><span class="hljs-number">60</span> <span class="hljs-operator">+</span> <span class="hljs-number">25</span><br>        ) b<br>    <span class="hljs-keyword">left</span> anti <span class="hljs-keyword">join</span> <br>        (<br>            <span class="hljs-keyword">select</span> <span class="hljs-keyword">distinct</span> stock_code, toStartOfMinute(trade_time) <span class="hljs-keyword">as</span> trade_time <span class="hljs-keyword">from</span> rqdata.sse50_tick <span class="hljs-keyword">where</span> trade_date<span class="hljs-operator">=</span><span class="hljs-string">&#x27;2016-03-29&#x27;</span><br>        ) c<br>        <span class="hljs-keyword">on</span> a.stock_code <span class="hljs-operator">=</span> c.stock_code <span class="hljs-keyword">and</span> b.trade_time <span class="hljs-operator">=</span> c.trade_time<br>    <span class="hljs-keyword">union</span> <span class="hljs-keyword">all</span><br>    <span class="hljs-keyword">select</span> <br>        stock_code,  trade_date, trade_time, <span class="hljs-keyword">open</span>, <span class="hljs-keyword">last</span>, high, low, prev_close, volume, total_turnover <br>    <span class="hljs-keyword">from</span> rqdata.sse50_tick <span class="hljs-keyword">where</span> trade_date<span class="hljs-operator">=</span><span class="hljs-string">&#x27;2016-03-29&#x27;</span><br>    )<br>) <span class="hljs-keyword">where</span> stock_code<span class="hljs-operator">=</span><span class="hljs-string">&#x27;601669.XSHG&#x27;</span> <span class="hljs-keyword">and</span> trade_time<span class="hljs-operator">&gt;</span><span class="hljs-string">&#x27;2016-03-29 14:59:00&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<p><img src="../img/kline_padding.png" srcset="/img/loading.gif" lazyload></p>
+<p>可以看到，最后一行进行了填充，当时间精确到分钟后，便得到收盘价。</p>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><p>分析函数，也叫OLAP函数(Online Anallytical Processing，联机分析处理)，可以对数据库数据进行实时分析处理。比起Python中的数据处理包Pandas，可以利用数据库软件自身的多线程机制进行加速，高效地完成数据分析工作。</p>
+<hr>
+<p>欢迎关注我的公众号“<strong>量化实战</strong>”，原创技术文章第一时间推送。<br><img src="/img/qrcode.jpg" srcset="/img/loading.gif" lazyload></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E9%87%8F%E5%8C%96/">量化</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/Tick%E8%A1%8C%E6%83%85/">Tick行情</a>
+                    
+                      <a class="hover-with-bg" href="/tags/Clickhouse/">Clickhouse</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E9%87%8F%E5%8C%96%E7%B3%BB%E7%BB%9F/">量化系统</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">
+                  
+                    本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！
+                  
+                </p>
+              
+              
+                <div class="post-prevnext">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/01/31/Tick%E8%A1%8C%E6%83%85%E6%95%B0%E6%8D%AE%E6%B5%81%E5%BC%8F%E5%A4%84%E7%90%86--%E5%BA%94%E7%94%A8Clickhouse%E7%AA%97%E5%8F%A3%E8%A7%86%E5%9B%BE/">
+                        <span class="hidden-mobile">Tick行情数据流式处理——应用Clickhouse窗口视图</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments" lazyload>
+                
+                  
+                
+                
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appKey":"ODqlMdJWwrMxHFHzfz3pMvBS","path":"window.location.pathname","placeholder":"说点什么","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":null,"emojiCDN":null,"emojiMaps":null,"enableQQ":false,"appid":"NQndU9io17iF8X4gY3Ifs1RO-gzGzoHsz","appkey":"ODqlMdJWwrMxHFHzfz3pMvBS"},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          Fluid.plugins.initFancyBox('#valine .vcontent img:not(.vemoji)');
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+  </main>
+
+  <footer class="text-center mt-5 py-3">
+  <div class="footer-content">
+     <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+  </div>
+  
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- LeanCloud 统计PV -->
+        <span id="leancloud-site-pv-container" style="display: none">
+            总访问量 
+            <span id="leancloud-site-pv"></span>
+             次
+          </span>
+      
+      
+        <!-- LeanCloud 统计UV -->
+        <span id="leancloud-site-uv-container" style="display: none">
+            总访客数 
+            <span id="leancloud-site-uv"></span>
+             人
+          </span>
+      
+
+    
+  </div>
+
+
+  
+  <!-- 备案信息 -->
+  <div class="beian">
+    <span>
+      <a href="http://beian.miit.gov.cn/" target="_blank" rel="nofollow noopener">
+        粤ICP备19097965号
+      </a>
+    </span>
+    
+      
+        <span>
+          <a
+            href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=44030502009772"
+            rel="nofollow noopener"
+            class="beian-police"
+            target="_blank"
+          >
+            
+              <span style="visibility: hidden; width: 0">|</span>
+              <img src="/img/beian.png" srcset="/img/loading.gif" lazyload alt="police-icon"/>
+            
+            <span>粤公网安备 44030502009772号</span>
+          </a>
+        </span>
+      
+    
+  </div>
+
+
+  
+</footer>
+
+
+  <!-- SCRIPTS -->
+  
+  <script  src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" ></script>
+<script  src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+<!-- Plugins -->
+
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  
+    <script  src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" ></script>
+  
+  
+    <script  src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js" ></script>
+  
+  
+    <script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js" ></script>
+  
+
+
+
+
+  <script defer src="/js/leancloud.js" ></script>
+
+
+
+  <script  src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var title = document.getElementById('subtitle').title;
+      
+        typing(title);
+      
+    })(window, document);
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <!-- Baidu Analytics -->
+    <script defer>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?e2bacb4062644434b87a03658392592e";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+  
+
+  
+
+  
+    <!-- Google gtag.js -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YSYVRNN9T"></script>
+    <script defer>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-7YSYVRNN9T');
+    </script>
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+<!-- 主题的启动项 保持在最底部 -->
+<script  src="/js/boot.js" ></script>
+
+
+</body>
+</html>
